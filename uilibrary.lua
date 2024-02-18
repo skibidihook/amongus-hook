@@ -326,7 +326,7 @@ do
 					if (prop.flag) then
 						function slider.flag:OnChanged(func)
 							slider.flag.Changed = func;
-							func()
+							func(slider.value)
 						end
 						flags[prop.flag] = slider.flag
 					end
