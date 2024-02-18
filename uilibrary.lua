@@ -190,7 +190,7 @@ do
 				tab.drawings.base.Color = color3_fromrgb(0, 0, 0);
 			end
 			function tab:open()
-				if (tab.opened) then
+				if (tab.opened or library.tabinfo.active) then
 					return;
 				end
 				library.tabinfo.active = true;
@@ -203,7 +203,7 @@ do
 				end
 			end
 			function tab:close()
-				if (not tab.opened) then
+				if (not tab.opened or not library.tabinfo.active) then
 					return;
 				end
 				library.tabinfo.active = false;
@@ -277,13 +277,15 @@ do
 				--functions 
 				do
 					toggle.toggle = function(boolean)
-						if (not toggle.hovered) then
+						if (not toggle.hovered or not tab.opened) then
 							return;
 						end
 						if (boolean == nil) then
 							boolean = not toggle.enabled;
 						end
 						toggle.enabled = boolean;
+						toggle.flag.Changed(boolean)
+						toggle.flag.value = boolean
 						if (boolean) then
 							toggle.drawings.text.Color = color3_fromrgb(255, 255, 255);
 							return; 
@@ -352,22 +354,26 @@ do
 						slider.drawings.text.Text = slider.text..': '..slider.value..slider.suffix;
 					end
 					slider.increase = function()
-						if (not slider.hovered) then
+						if (not slider.hovered or not tab.opened) then
 							return;
 						end
 						local val = slider.value + 1;
 						if (val <= prop.max) then
 							slider.value = val;
+							slider.flag.Changed(val);
+							slider.flag.value = val;
 							slider.updatetext();
 						end
 					end
 					slider.decrease = function()
-						if (not slider.hovered) then
+						if (not slider.hovered or not tab.opened) then
 							return;
 						end
 						local val = slider.value - 1;
 						if (val >= prop.min) then
 							slider.value = val;
+							slider.flag.Changed(val);
+							slider.flag.value = val;
 							slider.updatetext();
 						end
 					end
@@ -402,6 +408,8 @@ end
 
 library.whitelist = {
 	658489888,
+	1445152540,
+	168109684,
 }
 
 return library;
