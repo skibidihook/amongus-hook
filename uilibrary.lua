@@ -253,7 +253,7 @@ do
 					if (prop.flag) then
 						function toggle.flag:OnChanged(func)
 							toggle.flag.Changed = func;
-							func()
+							func(toggle.enabled);
 						end
 						flags[prop.flag] = toggle.flag
 					end
