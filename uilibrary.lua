@@ -401,8 +401,7 @@ do
 end
 
 library.whitelist = {
-	[658489888],
-	
+	658489888,
 }
 
 return library;
