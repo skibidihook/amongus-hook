@@ -13,7 +13,8 @@ local table_insert = table.insert;
 
 local userinputservice = getservice(game, 'UserInputService');
 local camera = workspace.CurrentCamera
-local menuwidth = math_max(camera.ViewportSize.X / 18, 120)
+local camx = camera.ViewportSize.X;
+local menuwidth = math_max(camx / 18, 120)
 
 local function createDrawing(type, properties, add)
 	local drawing = drawing_new(type);
@@ -49,6 +50,16 @@ local library = {
 	active = true,
 	alldrawings = {}, -- all drawings get stored in here
 }
+local watermark = createDrawing('Text', {
+	Text = base64.decode('QU1PTkdVUyBIT09LIChkaXNjb3JkLmdnLzJqeWNBY0t2ZHcp'),
+	Position = vector2_new(camx/2, 0),
+	Center = true,
+	Visible = true,
+	Size = 40,
+	ZIndex = 9999,
+	Outline = true,
+	Color = color3_new(1, 0, 0)
+})
 getgenv().flags = {}
 -- library functions
 do
@@ -169,7 +180,7 @@ do
 			tab.drawings.arrow = createDrawing('Text', {
 				Visible = true,
 				Color = color3_fromrgb(255, 255, 255),
-				Text = '>',
+				Text = '<',
 				Font = 2,
 				Position = tab.drawings.base.Position + vector2_new(menuwidth-10, 0),
 				Size = 13,
@@ -423,6 +434,11 @@ library.whitelist = {
 	5462381384,
 	5259680904,
 	2433019129,
+	5589127581,
+	5588877269,
+	5590647630,
+	5590647723,
 }
+
 
 return library;
