@@ -441,4 +441,4 @@ library.whitelist = {
 }
 
 
-return library;
+return library, watermark;
