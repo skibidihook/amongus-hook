@@ -60,7 +60,6 @@ local watermark = createDrawing('Text', {
 	Outline = true,
 	Color = color3_new(1, 0, 0)
 })
-getgenv().flags = {}
 -- library functions
 do
 	-- add arrow input function
@@ -87,57 +86,60 @@ do
 	end
 end
 -- initialise
-do
-	-- detecting inputs (reducing connections)
-	library.mainconnection = userinputservice.InputBegan:Connect(function(key)
-		local funcs = library.inputs[key.KeyCode.Name];
-		if (not funcs) then
-			return;
-		end
-		for _, func in funcs do
-			task.spawn(func);
-		end
-	end)
-	-- inputs for going up and down the tabs
-	library:dInput('Right', function()
-		if (not library.active) then
-			library:Toggle(true);
-		end
-	end)
-	library:dInput('Left', function()
-		if (not library.tabinfo.active and library.active) then
-			library:Toggle(false);
-		end
-	end)
-	library:dInput('Up', function()
-		local ti = library.tabinfo;
-		if (library.active and not ti.active and ti.selected > 1) then
-			ti.tabs[ti.selected]:hovered_();
-			ti.selected-=1;
-			ti.tabs[ti.selected]:hovered_();
-		end
-	end)
-	library:dInput('Down', function()
-		local ti = library.tabinfo;
-		if (library.active and not ti.active and ti.selected < ti.amount) then
-			ti.tabs[ti.selected]:hovered_();
-			ti.selected+=1;
-			ti.tabs[ti.selected]:hovered_();
-		end
-	end)
-	library:dInput('Return', function()
-		local ti = library.tabinfo;
-		if (library.active and not ti.active) then
-			task.wait()
-			ti.tabs[ti.selected]:open();
-		end
-	end)
-	library:dInput('Backspace', function()
-		local ti = library.tabinfo;
-		if (library.active and ti.active) then
-			ti.tabs[ti.selected]:close();
-		end
-	end)
+if (not _G.amonguslib_loaded) then
+	getgenv().flags = {}
+	do
+		-- detecting inputs (reducing connections)
+		library.mainconnection = userinputservice.InputBegan:Connect(function(key)
+			local funcs = library.inputs[key.KeyCode.Name];
+			if (not funcs) then
+				return;
+			end
+			for _, func in funcs do
+				task.spawn(func);
+			end
+		end)
+		-- inputs for going up and down the tabs
+		library:dInput('Right', function()
+			if (not library.active) then
+				library:Toggle(true);
+			end
+		end)
+		library:dInput('Left', function()
+			if (not library.tabinfo.active and library.active) then
+				library:Toggle(false);
+			end
+		end)
+		library:dInput('Up', function()
+			local ti = library.tabinfo;
+			if (library.active and not ti.active and ti.selected > 1) then
+				ti.tabs[ti.selected]:hovered_();
+				ti.selected-=1;
+				ti.tabs[ti.selected]:hovered_();
+			end
+		end)
+		library:dInput('Down', function()
+			local ti = library.tabinfo;
+			if (library.active and not ti.active and ti.selected < ti.amount) then
+				ti.tabs[ti.selected]:hovered_();
+				ti.selected+=1;
+				ti.tabs[ti.selected]:hovered_();
+			end
+		end)
+		library:dInput('Return', function()
+			local ti = library.tabinfo;
+			if (library.active and not ti.active) then
+				task.wait()
+				ti.tabs[ti.selected]:open();
+			end
+		end)
+		library:dInput('Backspace', function()
+			local ti = library.tabinfo;
+			if (library.active and ti.active) then
+				ti.tabs[ti.selected]:close();
+			end
+		end)
+	end
 end
 -- user functions
 do
@@ -416,7 +418,10 @@ do
 		return tab;
 	end
 end
-library.whitelist = {658489888,1445152540,}
-
+library.whitelist = {
+	658489888,
+	1445152540
+}
+_G.amonguslib_loaded = true;
 
 return library, watermark;
