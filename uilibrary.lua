@@ -421,7 +421,6 @@ end
 library.whitelist = {
 	658489888,
 	1445152540,
-	123456,
 	5619432996,
 }
 _G.amonguslib_loaded = true;
