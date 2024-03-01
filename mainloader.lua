@@ -1,3 +1,5 @@
+repeat wait() until game:IsLoaded()
+
 local placeid = game.PlaceId;
 local str = "https://raw.githubusercontent.com/mainstreamed/amongus-hook/main/";
 
