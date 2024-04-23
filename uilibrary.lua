@@ -258,6 +258,7 @@ do
 					flag = {
 						value = prop.default or false,
 					},
+					callback = prop.callback or function() end,
 					drawings = {},
 				}
 				-- flags
@@ -297,8 +298,9 @@ do
 							boolean = not toggle.enabled;
 						end
 						toggle.enabled = boolean;
-						toggle.flag.Changed(boolean)
 						toggle.flag.value = boolean
+						toggle.flag.Changed(boolean)
+						toggle.callback(boolean);
 						if (boolean) then
 							toggle.drawings.text.Color = color3_fromrgb(255, 255, 255);
 							return; 
@@ -333,6 +335,7 @@ do
 					flag = {
 						value = prop.default or prop.min,
 					},
+					callback = prop.callback or function() end,
 					drawings = {},
 				}
 				-- flags
@@ -373,8 +376,9 @@ do
 						local val = slider.value + 1;
 						if (val <= prop.max) then
 							slider.value = val;
-							slider.flag.Changed(val);
 							slider.flag.value = val;
+							slider.flag.Changed(val);
+							slider.callback(val);
 							slider.updatetext();
 						end
 					end
@@ -385,8 +389,9 @@ do
 						local val = slider.value - 1;
 						if (val >= prop.min) then
 							slider.value = val;
-							slider.flag.Changed(val);
 							slider.flag.value = val;
+							slider.flag.Changed(val);
+							slider.callback(val);
 							slider.updatetext();
 						end
 					end
