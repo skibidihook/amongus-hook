@@ -1,14 +1,34 @@
-repeat wait() until game:IsLoaded()
+if not game:IsLoaded() then
+	game.Loaded:Wait()
+end;
 
 local placeid = game.PlaceId;
-local str = "https://raw.githubusercontent.com/mainstreamed/amongus-hook/main/";
+local dir = 'https://raw.githubusercontent.com/mainstreamed/amongus-hook/main/';
 
-if (placeid == 13800717766 or placeid == 15479377118) then
-    loadstring(game:HttpGet(str.."fallensurvival/main.lua", true))()
-elseif (placeid == 13253735473) then
-    loadstring(game:HttpGet(str.."tridentsurvival/main.lua", true))()
-elseif (placeid == 292439477) then
-    loadstring(game:HttpGet(str.."phantomforces/main.lua"))()
-else
-    print('Failed to find game! - please open a ticket and send a screenshot ['..tostring(placeid)..'] [discord.gg/2jycAcKvdw]')
-end
+local statuslist = {
+	['fallensurvival'] = {
+		name = 'Fallen Survival',
+		status = 'Detected',
+	},
+	['tridentsurvival'] = {
+		name = 'Trident Survival',
+		status = 'Detected',
+	},
+};
+
+local load = function(name)
+	local game = statuslist[name];
+	if (game.status ~= 'Undetected') then
+		if (messagebox(`amongus.hook`, `{game.name} is Currently Marked as {game.status}!\n\nAre You Sure You Want to Continue?`, 52) ~= 6) then
+			return;
+		end;
+	end;
+	loadstring(request({Url=`{dir}{name}/main.lua`,Method='GET'}).Body)();
+end;
+
+if (placeid == 13253735473) then
+	return load('tridentsurvival');
+elseif (placeid == 13800717766 or placeid == 15479377118) then
+	return load('fallensurvival');
+end;
+messagebox(`amongus.hook [{placeid}]`, `This Game is Unsupported!\n\nIf you believe this is incorrect, please open a ticket in our discord! - discord.gg/2jycAcKvdw`, 48);
