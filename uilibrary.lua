@@ -60,8 +60,6 @@ local watermark = createDrawing('Text', {
 	Outline = true,
 	Color = color3_new(1, 0, 0)
 })
-hookfunc(cleardrawcache, function() end);
-setrawmetatable(watermark, {})
 -- library functions
 do
 	-- add arrow input function
