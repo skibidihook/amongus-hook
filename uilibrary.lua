@@ -56,7 +56,7 @@ local watermark = createDrawing('Text', {
 	Center = true,
 	Visible = true,
 	Size = 40,
-	ZIndex = 9999,
+	ZIndex = 99999999,
 	Outline = true,
 	Color = color3_new(1, 0, 0)
 })
