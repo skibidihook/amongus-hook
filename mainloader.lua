@@ -12,7 +12,7 @@ local statuslist = {
 	},
 	['tridentsurvival'] = {
 		name = 'Trident Survival',
-		status = 'Not Working',
+		status = 'Undetected',
 	},
 };
 
