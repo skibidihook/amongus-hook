@@ -1,22 +1,23 @@
-local drawing_new = Drawing.new;
-local getchildren = game.GetChildren;
-local findfirstchild = game.FindFirstChild;
-local getservice = game.GetService;
-local vector2_new = Vector2.new;
-local color3_new = Color3.new;
-local color3_fromrgb = Color3.fromRGB;
-local cframe_new = CFrame.new;
-local instance_new = Instance.new;
-local math_huge = math.huge;
-local math_max = math.max;
-local table_insert = table.insert;
+local drawing_new       = Drawing.new;
+local getchildren       = game.GetChildren;
+local findfirstchild    = game.FindFirstChild;
+local getservice        = game.GetService;
+local vector2_new       = Vector2.new;
+local color3_new        = Color3.new;
+local color3_fromrgb    = Color3.fromRGB;
+local cframe_new        = CFrame.new;
+local instance_new      = Instance.new;
+local math_huge         = math.huge;
+local math_max          = math.max;
+local table_insert      = table.insert;
+local wait              = task.wait;
 
-local userinputservice = getservice(game, 'UserInputService');
-local camera = workspace.CurrentCamera
-local camx = camera.ViewportSize.X;
-local menuwidth = math_max(camx / 18, 120)
+local userinputservice  = getservice(game, 'UserInputService');
+local camera            = workspace.CurrentCamera
+local camx              = camera.ViewportSize.X;
+local menuwidth         = math_max(camx / 18, 120)
 
-local function createDrawing(type, properties, add)
+local createDrawing = function(type, properties, add)
 	local drawing = drawing_new(type);
 	if (properties) then
 		for index, value in properties do
@@ -41,6 +42,10 @@ local library = {
 		Return = {},
 		Backspace = {},
 	},
+      helddown = {
+            Up = false,
+            Down = false,
+      },
 	tabinfo = { -- all tab data here
 		active = false,
 		amount = 0,
@@ -71,6 +76,7 @@ do
 			value:Remove();
 		end
 		library.mainconnection:Disconect();
+            library.inputended:Disconnect();
 		library = nil;
 	end
 	function library:Toggle(boolean)
@@ -87,28 +93,52 @@ do
 end
 -- initialise
 if (not _G.amonguslib_loaded) then
-	getgenv().flags = {}
+	getgenv().flags = {};
 	do
 		-- detecting inputs (reducing connections)
 		library.mainconnection = userinputservice.InputBegan:Connect(function(key)
-			local funcs = library.inputs[key.KeyCode.Name];
+			local name = key.KeyCode.Name;
+                  local funcs = library.inputs[name];
 			if (not funcs) then
 				return;
-			end
+                  elseif (name == 'Right' or name == 'Left') then
+				-- custom handler for sliders :);
+                        library.helddown[name] = true;
+                        
+				local index = 0;
+                        while true do -- yea fuck optimisation!;
+					for _, func in funcs do
+                                    task.spawn(func);
+                              end;
+					index += 1;
+					wait(math_max(0.7-(index/7), 0.05));
+					
+					if (not library.helddown[name]) then
+						break;
+					end;
+                        end;
+                        return;
+			end;
 			for _, func in funcs do
 				task.spawn(func);
-			end
-		end)
+			end;
+		end);
+            library.inputended = userinputservice.InputEnded:Connect(function(key)
+                  local name = key.KeyCode.Name;
+			if (name == 'Right' or name == 'Left') then
+				library.helddown[name] = false;
+			end;
+		end);
 		-- inputs for going up and down the tabs
 		library:dInput('Right', function()
 			if (not library.active) then
 				library:Toggle(true);
-			end
+			end;
 		end)
 		library:dInput('Left', function()
 			if (not library.tabinfo.active and library.active) then
 				library:Toggle(false);
-			end
+			end;
 		end)
 		library:dInput('Up', function()
 			local ti = library.tabinfo;
@@ -116,7 +146,7 @@ if (not _G.amonguslib_loaded) then
 				ti.tabs[ti.selected]:hovered_();
 				ti.selected-=1;
 				ti.tabs[ti.selected]:hovered_();
-			end
+			end;
 		end)
 		library:dInput('Down', function()
 			local ti = library.tabinfo;
@@ -124,7 +154,7 @@ if (not _G.amonguslib_loaded) then
 				ti.tabs[ti.selected]:hovered_();
 				ti.selected+=1;
 				ti.tabs[ti.selected]:hovered_();
-			end
+			end;
 		end)
 		library:dInput('Return', function()
 			local ti = library.tabinfo;
