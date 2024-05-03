@@ -84,6 +84,7 @@ do
 			boolean = not library.active
 		end
 		library.active = boolean;
+		watermark.Visible = boolean;
 		for _, tab in library.tabinfo.tabs do
 			for _, drawing in tab.drawings do
 				drawing.Visible = boolean;
