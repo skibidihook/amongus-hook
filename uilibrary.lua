@@ -385,7 +385,20 @@ do
 						end
 						toggle.drawings.text.Color = color3_fromrgb(79, 79, 79);
 					end;
-					toggle.flag.setvalue = toggle.toggle;
+					toggle.flag.setvalue = function(boolean)
+						if (boolean == nil) then
+							boolean = not toggle.enabled;
+						end;
+						toggle.enabled = boolean;
+						toggle.flag.value = boolean
+						toggle.flag.Changed(boolean)
+						toggle.callback(boolean);
+						if (boolean) then
+							toggle.drawings.text.Color = color3_fromrgb(255, 255, 255);
+							return; 
+						end
+						toggle.drawings.text.Color = color3_fromrgb(79, 79, 79);
+					end;
 				end
 				-- functionality / cleanup
 				do
