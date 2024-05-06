@@ -337,7 +337,8 @@ do
 							return; 
 						end
 						toggle.drawings.text.Color = color3_fromrgb(79, 79, 79);
-					end
+					end;
+					toggle.flag.setvalue = toggle.toggle;
 				end
 				-- functionality / cleanup
 				do
@@ -403,7 +404,7 @@ do
 					slider.increase = function()
 						if (not slider.hovered or not tab.opened) then
 							return;
-						end
+						end;
 						local val = slider.value + 1;
 						if (val <= prop.max) then
 							slider.value = val;
@@ -411,12 +412,12 @@ do
 							slider.flag.Changed(val);
 							slider.callback(val);
 							slider.updatetext();
-						end
-					end
+						end;
+					end;
 					slider.decrease = function()
 						if (not slider.hovered or not tab.opened) then
 							return;
-						end
+						end;
 						local val = slider.value - 1;
 						if (val >= prop.min) then
 							slider.value = val;
@@ -424,8 +425,15 @@ do
 							slider.flag.Changed(val);
 							slider.callback(val);
 							slider.updatetext();
-						end
-					end
+						end;
+					end;
+					slider.flag.setvalue = function(value)
+						slider.value = value;
+						slider.flag.value = value;
+						slider.flag.Changed(value);
+						slider.callback(value);
+						slider.updatetext();
+					end;
 				end
 				-- functionality / cleanup
 				do
