@@ -320,6 +320,10 @@ do
 				-- functionality / cleanup
 				do
 					library:dInput('Return', button.press)
+					if (tab.options.amount == 1) then
+						button.hovered = true;
+						button.drawings.base.Color = color3_fromrgb(255, 0, 0);
+					end
 				end
 				table_insert(tab.options.stored, button)
 				return button;
@@ -395,7 +399,6 @@ do
 						toggle.hovered = true;
 						toggle.drawings.base.Color = color3_fromrgb(255, 0, 0);
 					end
-
 				end
 				table_insert(tab.options.stored, toggle)
 				return toggle;
