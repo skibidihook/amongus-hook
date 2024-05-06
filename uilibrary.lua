@@ -281,6 +281,49 @@ do
 					current.drawings.base.Color = color3_fromrgb(255, 0, 0);
 				end
 			end
+			function tab:AddButton(name, func)
+				tab.options.amount += 1;
+				local button = {
+					hovered = false,
+					drawings = {},
+				}
+				-- drawings
+				do
+					button.drawings.base = createDrawing('Square', {
+						Transparency = 0.5,
+						Filled = true,
+						Position = tab.drawings.base.Position + vector2_new(menuwidth + 10, tab.options.amount*15),
+						Size = vector2_new(menuwidth, 15),
+					}, {library.alldrawings})
+					button.drawings.text = createDrawing('Text', {
+						Color = color3_fromrgb(255, 255, 255),
+						Font = 2,
+						Position = button.drawings.base.Position,
+						Size = 13,
+						Text = name or 'Button',
+					}, {library.alldrawings})
+				end
+				--functions 
+				do
+					button.press = function(boolean)
+						if (not button.hovered or not tab.opened) then
+							return;
+						end;
+						task.spawn(function()
+							button.drawings.text.Color = color3_fromrgb(255, 255, 255);
+							task.wait(0.05)
+							button.drawings.text.Color = color3_fromrgb(79, 79, 79);
+						end);
+						task.spawn(func);
+					end;
+				end
+				-- functionality / cleanup
+				do
+					library:dInput('Return', button.press)
+				end
+				table_insert(tab.options.stored, button)
+				return button;
+			end;
 			function tab:AddToggle(prop)
 				tab.options.amount += 1;
 				local toggle = {
