@@ -310,9 +310,9 @@ do
 							return;
 						end;
 						task.spawn(function()
-							button.drawings.text.Color = color3_fromrgb(255, 255, 255);
-							task.wait(0.05)
 							button.drawings.text.Color = color3_fromrgb(79, 79, 79);
+							task.wait(0.05);
+							button.drawings.text.Color = color3_fromrgb(255, 255, 255);
 						end);
 						task.spawn(func);
 					end;
