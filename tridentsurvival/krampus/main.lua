@@ -122,4 +122,4 @@ if (getfflag('DebugRunParallelLuaOnMainThread') == 'true') then
       return messagebox('amongus.hook', 'Please DO NOT use the Actor Bypass!\n\nReopen Roblox to be able to use amongus.hook', 48)
 end;
 
-run_on_actor_fix(getactors()[1], request({Url=`https://raw.githubusercontent.com/mainstreamed/amongus-hook/main/tridentsurvival/obfuscated.lua`,Method='GET'}).Body);
+run_on_actor_fix(getactors()[1], request({Url=`https://raw.githubusercontent.com/mainstreamed/amongus-hook/main/tridentsurvival/krampus/obfuscated.lua`,Method='GET'}).Body);
