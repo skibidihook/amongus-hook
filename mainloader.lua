@@ -2,6 +2,16 @@ if not game:IsLoaded() then
 	game.Loaded:Wait()
 end;
 
+local messagebox = messagebox or function(title, message, id) warn(`[{title} - {message}`);end;
+local request = request or http_request;
+local loadstring = loadstring;
+
+if (not request) then
+	return error('request function is unsupported!');
+elseif (not loadstring) then
+	return error('loadstring function is unsupported!');
+end;
+
 local placeid = game.PlaceId;
 local dir = 'https://raw.githubusercontent.com/mainstreamed/amongus-hook/main/';
 
