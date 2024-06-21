@@ -10,6 +10,7 @@ local instance_new      = Instance.new;
 local math_huge         = math.huge;
 local math_max          = math.max;
 local table_insert      = table.insert;
+local table_find        = table.find;
 local wait              = task.wait;
 
 local userinputservice  = getservice(game, 'UserInputService');
@@ -33,6 +34,7 @@ local createDrawing = function(type, properties, add)
 end
 
 -- main library
+local flags = {};
 local library = {
 	inputs = { -- all functions used for inputs (to save connections)
 		Up = {},
@@ -94,7 +96,6 @@ do
 end
 -- initialise
 if (not _G.amonguslib_loaded) then
-	getgenv().flags = {};
 	do
 		-- detecting inputs (reducing connections)
 		library.mainconnection = userinputservice.InputBegan:Connect(function(key)
@@ -105,18 +106,9 @@ if (not _G.amonguslib_loaded) then
                   elseif (name == 'Right' or name == 'Left') then
 				-- custom handler for sliders :);
                         library.helddown[name] = true;
-                        
-				local index = 0;
-                        while true do -- yea fuck optimisation!;
-					for _, func in funcs do
-                                    task.spawn(func);
-                              end;
-					index += 1;
-					wait(math_max(0.7-(index/7), 0.05));
-					
-					if (not library.helddown[name]) then
-						break;
-					end;
+
+                        for _, func in funcs do
+                              task.spawn(func);
                         end;
                         return;
 			end;
@@ -207,7 +199,7 @@ do
 				Color = color3_fromrgb(255, 255, 255),
 				Font = 2,
 				Position = tab.drawings.base.Position,
-				Size = 13,
+				Size = 14,
 				Text = text,
 			}, {library.alldrawings})
 			tab.drawings.arrow = createDrawing('Text', {
@@ -216,7 +208,7 @@ do
 				Text = '<',
 				Font = 2,
 				Position = tab.drawings.base.Position + vector2_new(menuwidth-10, 0),
-				Size = 13,
+				Size = 14,
 			}, {library.alldrawings})
 
 		end
@@ -290,16 +282,18 @@ do
 				-- drawings
 				do
 					button.drawings.base = createDrawing('Square', {
+                                    Visible = false,
 						Transparency = 0.5,
 						Filled = true,
 						Position = tab.drawings.base.Position + vector2_new(menuwidth + 10, tab.options.amount*15),
 						Size = vector2_new(menuwidth, 15),
 					}, {library.alldrawings})
 					button.drawings.text = createDrawing('Text', {
+                                    Visible = false,
 						Color = color3_fromrgb(255, 255, 255),
 						Font = 2,
 						Position = button.drawings.base.Position,
-						Size = 13,
+						Size = 14,
 						Text = name or 'Button',
 					}, {library.alldrawings})
 				end
@@ -353,16 +347,18 @@ do
 				-- drawings
 				do
 					toggle.drawings.base = createDrawing('Square', {
-						Transparency = 0.5,
+						Visible = false,
+                                    Transparency = 0.5,
 						Filled = true,
 						Position = tab.drawings.base.Position + vector2_new(menuwidth + 10, tab.options.amount*15),
 						Size = vector2_new(menuwidth, 15),
 					}, {library.alldrawings})
 					toggle.drawings.text = createDrawing('Text', {
+                                    Visible = false,
 						Color = color3_fromrgb(255, 255, 255),
 						Font = 2,
 						Position = toggle.drawings.base.Position,
-						Size = 13,
+						Size = 14,
 						Text = prop.text or 'Toggle',
 					}, {library.alldrawings})
 				end
@@ -443,16 +439,18 @@ do
 				-- drawings
 				do
 					slider.drawings.base = createDrawing('Square', {
+                                    Visible = false,
 						Transparency = 0.5,
 						Filled = true,
 						Position = tab.drawings.base.Position + vector2_new(menuwidth + 10, tab.options.amount*15),
 						Size = vector2_new(menuwidth, 15),
 					}, {library.alldrawings})
 					slider.drawings.text = createDrawing('Text', {
+                                    Visible = false,
 						Color = color3_fromrgb(255, 255, 255),
 						Font = 2,
 						Position = slider.drawings.base.Position,
-						Size = 13,
+						Size = 14,
 					}, {library.alldrawings})
 				end
 				--functions 
@@ -464,27 +462,44 @@ do
 						if (not slider.hovered or not tab.opened) then
 							return;
 						end;
-						local val = slider.value + 1;
-						if (val <= prop.max) then
-							slider.value = val;
-							slider.flag.value = val;
-							slider.flag.Changed(val);
-							slider.callback(val);
-							slider.updatetext();
-						end;
+                                    local index = 0;
+                                    while true do -- yea fuck optimisation!;
+                                          local val = slider.value + 1;
+                                          if (val <= prop.max) then
+                                                slider.value = val;
+                                                slider.flag.value = val;
+                                                slider.flag.Changed(val);
+                                                slider.callback(val);
+                                                slider.updatetext();
+                                          end;
+                                          index += 1;
+                                          wait(math_max(0.7-(index/7), 0.05));
+                                          if (not library.helddown[name]) then
+                                                break;
+                                          end;
+                                    end;
 					end;
 					slider.decrease = function()
 						if (not slider.hovered or not tab.opened) then
 							return;
 						end;
-						local val = slider.value - 1;
-						if (val >= prop.min) then
-							slider.value = val;
-							slider.flag.value = val;
-							slider.flag.Changed(val);
-							slider.callback(val);
-							slider.updatetext();
-						end;
+
+                                    local index = 0;
+                                    while true do -- yea fuck optimisation!;
+                                          local val = slider.value - 1;
+                                          if (val >= prop.min) then
+                                                slider.value = val;
+                                                slider.flag.value = val;
+                                                slider.flag.Changed(val);
+                                                slider.callback(val);
+                                                slider.updatetext();
+                                          end;
+                                          index += 1;
+                                          wait(math_max(0.7-(index/7), 0.05));
+                                          if (not library.helddown[name]) then
+                                                break;
+                                          end;
+                                    end;
 					end;
 					slider.flag.setvalue = function(value)
 						slider.value = value;
@@ -509,7 +524,104 @@ do
 
 				table_insert(tab.options.stored, slider)
 				return slider;
-			end
+			end;
+                  function tab:AddDropdown(prop)
+                        tab.options.amount += 1
+				local dropdown = {
+					hovered = false,
+					text = prop.text or 'Dropdown',
+					options = prop.options,
+					value = prop.default or prop.options[1],
+                              cycleindex = 1,
+                              maxindex = #prop.options,
+					flag = {
+						value = prop.default or prop.options[1],
+					},
+					callback = prop.callback or function() end,
+					drawings = {},
+				};
+
+                        -- flags
+				do
+					dropdown.flag.Changed = function() end;
+					if (prop.flag) then
+						function dropdown.flag:OnChanged(func)
+							dropdown.flag.Changed = func;
+							func(dropdown.value);
+						end
+						flags[prop.flag] = dropdown.flag;
+					end;
+				end;
+
+                        -- drawings
+                        do
+                              dropdown.drawings.base = createDrawing('Square', {
+                                    Visible = false,
+						Transparency = 0.5,
+						Filled = true,
+						Position = tab.drawings.base.Position + vector2_new(menuwidth + 10, tab.options.amount*15),
+						Size = vector2_new(menuwidth, 15),
+					}, {library.alldrawings})
+					dropdown.drawings.text = createDrawing('Text', {
+                                    Visible = false,
+						Color = color3_fromrgb(255, 255, 255),
+						Font = 2,
+						Position = dropdown.drawings.base.Position,
+						Size = 14,
+					}, {library.alldrawings})
+                        end;
+
+                        --functions 
+				do
+                              dropdown.setValue = function(value)
+                                    dropdown.drawings.text.Text = `{dropdown.text}: {value}`;
+                                    dropdown.value = value;
+                                    dropdown.flag.value = value;
+                                    dropdown.flag.Changed(value);
+                                    dropdown.callback(value);
+                              end;
+                              dropdown.cycleRight = function()
+                                    if (not dropdown.hovered or not tab.opened) then
+							return;
+						end;
+
+                                    dropdown.cycleindex += 1;
+                                    if (dropdown.cycleindex > dropdown.maxindex) then
+                                          dropdown.cycleindex = 1;
+                                    end;
+                                    dropdown.setValue(dropdown.options[dropdown.cycleindex]);
+                              end;
+                              dropdown.cycleLeft = function()
+                                    if (not dropdown.hovered or not tab.opened) then
+							return;
+						end;
+
+                                    dropdown.cycleindex -= 1;
+                                    if (dropdown.cycleindex < 1) then
+                                          dropdown.cycleindex = dropdown.maxindex;
+                                    end;
+                                    dropdown.setValue(dropdown.options[dropdown.cycleindex]);
+                              end;
+                              dropdown.flag.setvalue = dropdown.setValue;
+                        end;
+
+                        -- functionality / cleanup
+				do
+                              dropdown.cycleindex = table_find(dropdown.options, dropdown.value);
+                              dropdown.setValue(dropdown.value);
+
+                              library:dInput('Right', dropdown.cycleRight);
+					library:dInput('Left', dropdown.cycleLeft);
+                              
+                              if (tab.options.amount == 1) then
+						dropdown.hovered = true;
+						dropdown.drawings.base.Color = color3_fromrgb(255, 0, 0);
+					end;
+                        end;
+
+                        table_insert(tab.options.stored, dropdown);
+                        return dropdown;
+                  end;
 		end
 		-- functionality / cleanup
 		do
@@ -528,4 +640,4 @@ library.whitelist = {
 }
 _G.amonguslib_loaded = true;
 
-return library, watermark;
+return library, flags;
