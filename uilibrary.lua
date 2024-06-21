@@ -474,7 +474,7 @@ do
                                           end;
                                           index += 1;
                                           wait(math_max(0.7-(index/7), 0.05));
-                                          if (not library.helddown[name]) then
+                                          if (not library.helddown.Right) then
                                                 break;
                                           end;
                                     end;
@@ -496,7 +496,7 @@ do
                                           end;
                                           index += 1;
                                           wait(math_max(0.7-(index/7), 0.05));
-                                          if (not library.helddown[name]) then
+                                          if (not library.helddown.Left) then
                                                 break;
                                           end;
                                     end;
