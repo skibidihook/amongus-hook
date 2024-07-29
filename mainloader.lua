@@ -2,10 +2,6 @@ if not game:IsLoaded() then
 	game.Loaded:Wait()
 end;
 
-if (identifyexecutor() ~= 'Wave') then
-    return warn('You are running a unsupported executor!');
-end;
-
 local messagebox = messagebox or function(title, message, id) warn(`[{title} - {message}`);end;
 local request = request or http_request;
 local loadstring = loadstring;
