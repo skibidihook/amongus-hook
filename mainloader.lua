@@ -7,9 +7,11 @@ local request = request or http_request;
 local loadstring = loadstring;
 
 if (not request) then
-	return error('request function is unsupported!');
+	return messagebox('request function is unsupported!');
 elseif (not loadstring) then
-	return error('loadstring function is unsupported!');
+	return messagebox('loadstring function is unsupported!');
+elseif (not Drawing) then
+	return messagebox('Drawing function was not found! (Executor issue)')
 end;
 
 local placeid = game.PlaceId;
@@ -22,7 +24,7 @@ local statuslist = {
 	},
 	['tridentsurvival'] = {
 		name = 'Trident Survival',
-		status = 'BROKEN (Wave issue)',
+		status = 'Undetected',
 	},
 };
 
