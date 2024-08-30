@@ -7,11 +7,11 @@ local request = request or http_request;
 local loadstring = loadstring;
 
 if (not request) then
-	return messagebox('request function is unsupported!');
+	return messagebox('request function is unsupported!', 'amongus.hook', 48);
 elseif (not loadstring) then
-	return messagebox('loadstring function is unsupported!');
+	return messagebox('loadstring function is unsupported!', 'amongus.hook', 48);
 elseif (not Drawing) then
-	return messagebox('Drawing function was not found! (Executor issue)')
+	return messagebox('Drawing function was not found! (Executor issue)', 'amongus.hook', 48);
 end;
 
 local placeid = game.PlaceId;
