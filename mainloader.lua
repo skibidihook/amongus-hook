@@ -11,7 +11,7 @@ if (not request) then
 elseif (not loadstring) then
 	return messagebox('loadstring function is unsupported!', 'amongus.hook', 48);
 elseif (not Drawing) then
-	return messagebox('Drawing function was not found! (Executor issue)', 'amongus.hook', 48);
+	loadstring(game:HttpGet('https://raw.githubusercontent.com/mainstreamed/amongus-hook/main/drawingfix.lua'))()
 end;
 
 local placeid = game.PlaceId;
