@@ -24,7 +24,7 @@ local statuslist = {
 	},
 	['tridentsurvival'] = {
 		name = 'Trident Survival',
-		status = 'USE AT OWN RISK',
+		status = 'Undetected',
 	},
 };
 
