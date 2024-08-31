@@ -505,9 +505,4 @@ end
 
 setreadonly(DrawingLib, true)
 
-if getgenv().Drawing == nil then
 getgenv().Drawing = DrawingLib
-end
-if Drawing == nil then
-Drawing = DrawingLib
-end
