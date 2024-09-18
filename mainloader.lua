@@ -10,9 +10,11 @@ if (not request) then
 	return messagebox('request function is unsupported!', 'amongus.hook', 48);
 elseif (not loadstring) then
 	return messagebox('loadstring function is unsupported!', 'amongus.hook', 48);
-elseif (not Drawing) then
-	loadstring(game:HttpGet('https://raw.githubusercontent.com/mainstreamed/amongus-hook/main/drawingfix.lua'))()
+--elseif (not Drawing) then
+	--loadstring(game:HttpGet('https://raw.githubusercontent.com/mainstreamed/amongus-hook/main/drawingfix.lua'))()
 end;
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/smi9/UnnamedCheats/main/drawing.lua"))(); -- fuck you wave!!!
 
 local placeid = game.PlaceId;
 local dir = 'https://raw.githubusercontent.com/mainstreamed/amongus-hook/main/';
