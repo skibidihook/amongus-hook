@@ -483,7 +483,7 @@ do
                         Size = props.Size,
                         Font = enumToFont[props.Font],
                         Width = huge
-                  }));
+                  }).instance);
             end
 
             text.Remove = text.Destroy;
