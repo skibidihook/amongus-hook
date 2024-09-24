@@ -27,6 +27,8 @@ local _typeof                 = clonefunction(renv.typeof);
 local _tostring               = clonefunction(renv.tostring);
 local _type                   = clonefunction(renv.type);
 local _taskspawn              = clonefunction(renv.task.spawn);
+local _tablefind              = clonefunction(renv.table.find);
+local _tableinsert            = clonefunction(renv.table.insert);
 local _udimnew                = clonefunction(renv.UDim.new);
 local _udim2fromoffset        = clonefunction(renv.UDim2.fromOffset);
 local _udim2new               = clonefunction(renv.UDim2.new);
@@ -56,6 +58,9 @@ runfunction.Event:Connect(function(f, ...)
       f(...);
 end);
 
+local custominstance_cache = {};
+local instance_cache = {};
+
 local _instancenew2 = function(classname: string, parent: Instance)
       local instance = _instancenew(classname);
       local instanceObject = setmetatable({}, {
@@ -69,25 +74,38 @@ local _instancenew2 = function(classname: string, parent: Instance)
                   return fetchedvariable;
             end;
             __newindex = function(self, index, new)
-                  if (_tostring(new) == 'CustomInstance') then
+                  if (_tablefind(custominstance_cache, new)) then
                         new = new.instance;
                   end;
                   _eventfire(runfunction, function()
                         _metatableclone.__newindex(instance, index, new);
                   end);
             end;
-            __tostring = function()
-                  return 'CustomInstance';
-            end;
       });
       return instanceObject;
 end;
+local _create = function(className, properties, children)
+      local inst = _instancenew(className);
+      for i, v in properties do
+            if i ~= "Parent" then
+                  inst[i] = v;
+            end
+      end
+      if children then
+            for i, v in children do
+                  v.Parent = inst;
+            end
+      end
+      if _protectinstance then
+            _protectinstance(inst);
+      end
+      inst.Parent = properties.Parent;
+      return inst;
+end
 
-
-
-
-local create = function(className, properties, children, normal)
-      local inst = normal and _instancenew(className) or _instancenew2(className);
+local create = function(className, properties, children)
+      local inst = _instancenew2(className);
+      _tableinsert(custominstance_cache, inst);
       for i, v in properties do
             if i ~= "Parent" then
                   inst[i] = v;
@@ -114,7 +132,7 @@ do -- This may look completely useless, but it allows TextBounds to update witho
       };
 
       for i, v in fonts do
-            game:GetService("TextService"):GetTextBoundsAsync(create("GetTextBoundsParams", {
+            game:GetService("TextService"):GetTextBoundsAsync(_create("GetTextBoundsParams", {
                   Text = "Hi",
                   Size = 12,
                   Font = v,
@@ -124,8 +142,8 @@ do -- This may look completely useless, but it allows TextBounds to update witho
 end
 
 do
-      local drawingDirectory = create("ScreenGui", {
-            DisplayOrder = 15,
+      local drawingDirectory = _create("ScreenGui", {
+            DisplayOrder = 0x7fffffff,
             IgnoreGuiInset = true,
             Name = "drawingDirectory",
             Parent = gethui(),
@@ -249,6 +267,19 @@ do
                   itemCounter = itemCounter + 1;
                   local id = itemCounter;
 
+                  local _frame = create("Frame", {
+                        Name = id,
+                        AnchorPoint = _vector2new(0.5, 0.5),
+                        BackgroundColor3 = _color3new(),
+                        BackgroundTransparency = 1,
+                        BorderSizePixel = 0,
+                        Parent = drawingDirectory,
+                        Position = _udim2new(),
+                        Size = _udim2new(),
+                        Visible = false,
+                        ZIndex = 0
+                  });
+
                   local newCircle = _setmetatable({
                               _id = id,
                               __OBJECT_EXISTS = true,
@@ -263,28 +294,18 @@ do
                               Visible = false,
                               ZIndex = 0
                         },
-                        _frame = create("Frame", {
-                              Name = id,
-                              AnchorPoint = _vector2new(0.5, 0.5),
-                              BackgroundColor3 = _color3new(),
-                              BackgroundTransparency = 1,
-                              BorderSizePixel = 0,
-                              Parent = drawingDirectory,
-                              Position = _udim2new(),
-                              Size = _udim2new(),
-                              Visible = false,
-                              ZIndex = 0
-                        }, {
-                              create("UICorner", {
-                                    Name = "_corner",
-                                    CornerRadius = _udimnew(1, 0)
-                              }),
-                              create("UIStroke", {
-                                    Name = "_stroke",
-                                    Color = _color3new(),
-                                    Thickness = 1
-                              })
-                        })
+                        _frame = _frame,
+                        _corner = create("UICorner", {
+                              Name = "_corner",
+                              CornerRadius = _udimnew(1, 0),
+                              Parent = _frame,
+                        }),
+                        _stroke = create("UIStroke", {
+                              Name = "_stroke",
+                              Color = _color3new(),
+                              Thickness = 1,
+                              Parent = _frame,
+                        }),
                   }, circle);
 
                   cache[id] = newCircle;
@@ -308,7 +329,7 @@ do
                         props[k] = v;
                         if k == "Color" then
                               self._frame.BackgroundColor3 = v;
-                              self._frame._stroke.Color = v;
+                              self._stroke.Color = v;
                         elseif k == "Filled" then
                               self._frame.BackgroundTransparency = v and 1 - props.Transparency or 1;
                         elseif k == "Position" then
@@ -316,10 +337,10 @@ do
                         elseif k == "Radius" then
                               self:_updateRadius();
                         elseif k == "Thickness" then
-                              self._frame._stroke.Thickness = _mathmax(v, 1);
+                              self._stroke.Thickness = _mathmax(v, 1);
                               self:_updateRadius();
                         elseif k == "Transparency" then
-                              self._frame._stroke.Transparency = 1 - v;
+                              self._stroke.Transparency = 1 - v;
                               if props.Filled then
                                     self._frame.BackgroundTransparency = 1 - v;
                               end
@@ -498,6 +519,17 @@ do
                   itemCounter = itemCounter + 1;
                   local id = itemCounter;
 
+                  local _frame = create("Frame", {
+                        BackgroundColor3 = _color3new(),
+                        BackgroundTransparency = 1,
+                        BorderSizePixel = 0,
+                        Parent = drawingDirectory,
+                        Position = _udim2new(),
+                        Size = _udim2new(),
+                        Visible = false,
+                        ZIndex = 0
+                  })
+
                   local newSquare = _setmetatable({
                         _id = id,
                         __OBJECT_EXISTS = true,
@@ -511,22 +543,13 @@ do
                               Visible = false,
                               ZIndex = 0
                         },
-                        _frame = create("Frame", {
-                              BackgroundColor3 = _color3new(),
-                              BackgroundTransparency = 1,
-                              BorderSizePixel = 0,
-                              Parent = drawingDirectory,
-                              Position = _udim2new(),
-                              Size = _udim2new(),
-                              Visible = false,
-                              ZIndex = 0
-                        }, {
-                              create("UIStroke", {
-                                    Name = "_stroke",
-                                    Color = _color3new(),
-                                    Thickness = 1
-                              })
-                        })
+                        _frame = _frame,
+                        _stroke = create("UIStroke", {
+                              Name = "_stroke",
+                              Color = _color3new(),
+                              Thickness = 1,
+                              Parent = _frame,
+                        }),
                   }, square);
                   
                   cache[id] = newSquare;
@@ -550,7 +573,7 @@ do
                         props[k] = v;
                         if k == "Color" then
                               self._frame.BackgroundColor3 = v;
-                              self._frame._stroke.Color = v;
+                              self._stroke.Color = v;
                         elseif k == "Filled" then
                               self._frame.BackgroundTransparency = v and 1 - props.Transparency or 1;
                         elseif k == "Position" then
@@ -558,10 +581,10 @@ do
                         elseif k == "Size" then
                               self:_updateScale();
                         elseif k == "Thickness" then
-                              self._frame._stroke.Thickness = v;
+                              self._stroke.Thickness = v;
                               self:_updateScale();
                         elseif k == "Transparency" then
-                              self._frame._stroke.Transparency = 1 - v;
+                              self._stroke.Transparency = 1 - v;
                               if props.Filled then
                                     self._frame.BackgroundTransparency = 1 - v;
                               end
