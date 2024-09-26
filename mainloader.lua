@@ -2,7 +2,7 @@ if not game:IsLoaded() then
 	game.Loaded:Wait()
 end;
 
-local messagebox = messagebox or function(message, title, id) warn(`[{title} - {message}`);end;
+local messagebox = messagebox or function(message, title, id) warn(`[{title} - {message}`); return 6; end;
 local request = request or http_request;
 local loadstring = loadstring;
 
@@ -29,7 +29,7 @@ local statuslist = {
 	},
 	['tridentsurvival'] = {
 		name = 'Trident Survival',
-		status = 'Broken',
+		status = 'Undetected',
 	},
 };
 
