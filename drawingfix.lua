@@ -24,7 +24,7 @@ local _mathmax                = clonefunction(renv.math.max);
 local _setmetatable           = clonefunction(renv.setmetatable);
 local _stringformat           = clonefunction(renv.string.format);
 local _typeof                 = clonefunction(renv.typeof);
-local _tostring               = clonefunction(renv.tostring);
+local _next                   = clonefunction(renv.next);
 local _type                   = clonefunction(renv.type);
 local _taskspawn              = clonefunction(renv.task.spawn);
 local _tablefind              = clonefunction(renv.table.find);
@@ -59,7 +59,6 @@ runfunction.Event:Connect(function(f, ...)
 end);
 
 local custominstance_cache = {};
-local instance_cache = {};
 
 local _instancenew2 = function(classname: string, parent: Instance)
       local instance = _instancenew(classname);
@@ -211,7 +210,7 @@ do
                   if self.__OBJECT_EXISTS == true then
                         local props = self._properties;
                         
-                        if props[k] == nil or props[k] == v or typeof(props[k]) ~= typeof(v) then
+                        if props[k] == nil or props[k] == v or _typeof(props[k]) ~= _typeof(v) then
                               return;
                         end
 
@@ -236,7 +235,7 @@ do
             end
                   
             function line:__iter()
-                  return next, self._properties;
+                  return _next, self._properties;
             end
                   
             function line:__tostring()
@@ -323,7 +322,7 @@ do
             function circle:__newindex(k, v)
                   if self.__OBJECT_EXISTS == true then
                         local props = self._properties;
-                        if props[k] == nil or props[k] == v or typeof(props[k]) ~= typeof(v) then
+                        if props[k] == nil or props[k] == v or _typeof(props[k]) ~= _typeof(v) then
                               return;
                         end
                         props[k] = v;
@@ -353,7 +352,7 @@ do
             end
             
             function circle:__iter()
-                  return next, self._properties;
+                  return _next, self._properties;
             end
                   
             function circle:__tostring()
@@ -448,7 +447,7 @@ do
             function text:__newindex(k, v)
                   if self.__OBJECT_EXISTS == true then
                         local props = self._properties;
-                        if k == "TextBounds" or props[k] == nil or props[k] == v or typeof(props[k]) ~= typeof(v) then
+                        if k == "TextBounds" or props[k] == nil or props[k] == v or _typeof(props[k]) ~= _typeof(v) then
                               return;
                         end
                         props[k] = v;
@@ -483,7 +482,7 @@ do
             end
                   
             function text:__iter()
-                  return next, self._properties;
+                  return _next, self._properties;
             end
                   
             function text:__tostring()
@@ -567,7 +566,7 @@ do
             function square:__newindex(k, v)
                   if self.__OBJECT_EXISTS == true then
                         local props = self._properties;
-                        if props[k] == nil or props[k] == v or typeof(props[k]) ~= typeof(v) then
+                        if props[k] == nil or props[k] == v or _typeof(props[k]) ~= _typeof(v) then
                               return;
                         end
                         props[k] = v;
@@ -581,7 +580,6 @@ do
                         elseif k == "Size" then
                               self:_updateScale();
                         elseif k == "Thickness" then
-                              self._stroke.Thickness = v;
                               self:_updateScale();
                         elseif k == "Transparency" then
                               self._stroke.Transparency = 1 - v;
@@ -597,7 +595,7 @@ do
             end
       
             function square:__iter()
-                  return next, self._properties;
+                  return _next, self._properties;
             end
       
             function square:__tostring()
@@ -613,8 +611,20 @@ do
 
             function square:_updateScale()
                   local props = self._properties;
-                  self._frame.Position = _udim2fromoffset(props.Position.X + props.Thickness, props.Position.Y + props.Thickness);
-                  self._frame.Size = _udim2fromoffset(props.Size.X - props.Thickness * 2, props.Size.Y - props.Thickness * 2);
+                  local _frame = self._frame;
+
+                  local size = props.Size;
+                  local position = props.Position;
+
+                  local sizex, sizey = size.X, size.Y;
+                  local thickness = props.Thickness;
+                  if (sizex == 0 or sizey == 0) then
+                        thickness = 0;
+                  end;
+
+                  self._stroke.Thickness = thickness;
+                  _frame.Position = _udim2fromoffset(position.X + thickness, position.Y + thickness);
+                  _frame.Size = _udim2fromoffset(sizex - thickness * 2, sizey - thickness * 2);
             end
 
             square.Remove = square.Destroy;
@@ -681,7 +691,7 @@ do
             function image:__newindex(k, v)
                   if self.__OBJECT_EXISTS == true then
                         local props = self._properties;
-                        if props[k] == nil or props[k] == v or typeof(props[k]) ~= typeof(v) then
+                        if props[k] == nil or props[k] == v or _typeof(props[k]) ~= _typeof(v) then
                               return;
                         end
                         props[k] = v;
@@ -708,7 +718,7 @@ do
             end
       
             function image:__iter()
-                  return next, self._properties;
+                  return _next, self._properties;
             end
             
             function image:__tostring()
@@ -825,7 +835,7 @@ do
             function triangle:__newindex(k, v)
                   if self.__OBJECT_EXISTS == true then
                         local props, frame = self._properties, self._frame;
-                        if props[k] == nil or props[k] == v or typeof(props[k]) ~= typeof(v) then
+                        if props[k] == nil or props[k] == v or _typeof(props[k]) ~= _typeof(v) then
                               return;
                         end
                         props[k] = v;
@@ -877,7 +887,7 @@ do
             end
             
             function triangle:__iter()
-                  return next, self._properties;
+                  return _next, self._properties;
             end
             
             function triangle:__tostring()
@@ -990,7 +1000,7 @@ do
             function quad:__newindex(k, v)
                   if self.__OBJECT_EXISTS == true then
                         local props, frame = self._properties, self._frame;
-                        if props[k] == nil or props[k] == v or typeof(props[k]) ~= typeof(v) then
+                        if props[k] == nil or props[k] == v or _typeof(props[k]) ~= _typeof(v) then
                         return;
                         end
                         props[k] = v;
@@ -1053,7 +1063,7 @@ do
             end
 
             function quad:__iter()
-                  return next, self._properties;
+                  return _next, self._properties;
             end
             
             function quad:__tostring()
@@ -1087,7 +1097,7 @@ do
       end);
 
       drawing.clear = newcclosure(function()
-            for i, v in cache do
+            for i, v in _next, cache do
                   if v.__OBJECT_EXISTS then
                         v:Destroy();
                   end
