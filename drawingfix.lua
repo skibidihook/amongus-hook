@@ -4,11 +4,11 @@ local textService = cloneref(game:GetService("TextService"));
 
 local drawing = {
       Fonts = {
-            UI = 0,
-            System = 1,
-            Plex = 2,
-            Monospace = 3
-      }
+            UI = 0;
+            System = 1;
+            Plex = 2;
+            Monospace = 3;
+      };
 };
 
 local renv                    = getrenv();
@@ -296,7 +296,7 @@ do
                         _frame = _frame,
                         _corner = create("UICorner", {
                               Name = "_corner",
-                              CornerRadius = _udimnew(1, 0),
+                              CornerRadius = _udimnew(0.5, 0),
                               Parent = _frame,
                         }),
                         _stroke = create("UIStroke", {
@@ -1106,7 +1106,7 @@ do
 
       drawing.cache = cache;
 end
-
+drawing.new_ = Drawing.new;
 setreadonly(drawing, true);
 setreadonly(drawing.Fonts, true);
 
