@@ -197,7 +197,7 @@ do
 			tab.drawings.text = createDrawing('Text', {
 				Visible = true,
 				Color = color3_fromrgb(255, 255, 255),
-				Font = 2,
+				Font = 1,
 				Position = tab.drawings.base.Position,
 				Size = 14,
 				Text = text,
@@ -206,7 +206,7 @@ do
 				Visible = true,
 				Color = color3_fromrgb(255, 255, 255),
 				Text = '<',
-				Font = 2,
+				Font = 1,
 				Position = tab.drawings.base.Position + vector2_new(menuwidth-10, 0),
 				Size = 14,
 			}, {library.alldrawings})
@@ -291,7 +291,7 @@ do
 					button.drawings.text = createDrawing('Text', {
                                     Visible = false,
 						Color = color3_fromrgb(255, 255, 255),
-						Font = 2,
+						Font = 1,
 						Position = button.drawings.base.Position,
 						Size = 14,
 						Text = name or 'Button',
@@ -356,7 +356,7 @@ do
 					toggle.drawings.text = createDrawing('Text', {
                                     Visible = false,
 						Color = color3_fromrgb(255, 255, 255),
-						Font = 2,
+						Font = 1,
 						Position = toggle.drawings.base.Position,
 						Size = 14,
 						Text = prop.text or 'Toggle',
@@ -448,7 +448,7 @@ do
 					slider.drawings.text = createDrawing('Text', {
                                     Visible = false,
 						Color = color3_fromrgb(255, 255, 255),
-						Font = 2,
+						Font = 1,
 						Position = slider.drawings.base.Position,
 						Size = 14,
 					}, {library.alldrawings})
@@ -565,7 +565,7 @@ do
 					dropdown.drawings.text = createDrawing('Text', {
                                     Visible = false,
 						Color = color3_fromrgb(255, 255, 255),
-						Font = 2,
+						Font = 1,
 						Position = dropdown.drawings.base.Position,
 						Size = 14,
 					}, {library.alldrawings})
