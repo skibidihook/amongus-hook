@@ -11,7 +11,7 @@ if (not request) then
 elseif (not loadstring) then
 	return messagebox('loadstring function is unsupported!', 'amongus.hook', 48);
 elseif ((identifyexecutor and identifyexecutor() == 'Wave')) then
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/smi9/UnnamedCheats/main/drawing.lua"))(); -- fuck you wave!!!
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/mainstreamed/amongus-hook/refs/heads/main/drawingfix.lua"))(); -- fuck you wave!!!
 end;
 
 -- if ((identifyexecutor and identifyexecutor() == 'Wave')) then
