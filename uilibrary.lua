@@ -55,8 +55,11 @@ local library = {
 		tabs = {},
 	},
 	active = true,
+	togglecallbacks = {};
 	alldrawings = {}, -- all drawings get stored in here
 }
+
+--[[
 local watermark = createDrawing('Text', {
 	Text = base64.decode('QU1PTkdVUyBIT09LIChkaXNjb3JkLmdnLzJqeWNBY0t2ZHcp'),
 	Position = vector2_new(camx/2, 0),
@@ -67,6 +70,8 @@ local watermark = createDrawing('Text', {
 	Outline = true,
 	Color = color3_new(1, 0, 0)
 })
+]]
+
 -- library functions
 do
 	-- add arrow input function
@@ -81,12 +86,19 @@ do
             library.inputended:Disconnect();
 		library = nil;
 	end
+	function library:AddToToggle(_function)
+		table.insert(library.togglecallbacks, _function);
+	end;
 	function library:Toggle(boolean)
 		if (boolean == nil) then
 			boolean = not library.active
 		end
+
+		for _, _function in library.togglecallbacks do
+			_function(boolean);
+		end;
+
 		library.active = boolean;
-		watermark.Visible = boolean;
 		for _, tab in library.tabinfo.tabs do
 			for _, drawing in tab.drawings do
 				drawing.Visible = boolean;
