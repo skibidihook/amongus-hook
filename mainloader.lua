@@ -29,7 +29,7 @@ local statuslist = {
 	},
 	['tridentsurvival'] = {
 		name = 'Trident Survival',
-		status = 'Use at own risk',
+		status = 'Detected (Verified Only)',
 	},
 };
 
