@@ -14,6 +14,8 @@
 
 local GLOBAL_FONT = 1;
 
+-- local Drawing = require(script.Drawing);
+
 local cloneref		= cloneref or function(...) return ... end;
 
 
@@ -75,7 +77,7 @@ windowClass.new = function(options: table)
 		id                = windowClass.index;
 		active            = true;
 		title             = options.title or 'amongus.hook';
-		size              = options.size or vector2(601, 360);
+		size              = options.size or vector2(600, 360);
 		position          = camera.ViewportSize / 2;
 
 		tabSettings       = {
@@ -112,7 +114,7 @@ windowClass.new = function(options: table)
 			Transparency      = 1;
 			Thickness         = 1;
 			Color             = color_rgb(255, 42, 191);
-			Position          = window.position - window.size / 2;
+			Position          = drawings.base.Position;
 			Size              = vector2(window.size.X, 20);
 			ZIndex            = -999;
 		},  window.allDrawings);
@@ -129,13 +131,14 @@ windowClass.new = function(options: table)
 			Size              = drawings.base.Size + vector2(2, 2);
 			ZIndex            = 11;
 		}, window.allDrawings);
+
 		drawings.innerOutline = createDrawing('Square', {
 			Visible           = window.active;
 			Filled            = false;
 			Transparency      = 1;
 			Thickness         = 1;
 			Color             = color_rgb(7, 7, 7);
-			Position          = drawings.base.Position - vector2(1, 1) + vector2(0, 20);
+			Position          = drawings.baseOutline.Position + vector2(0, 20);
 			Size              = drawings.base.Size + vector2(2, 2) - vector2(0, 20);
 			ZIndex            = 11;
 		}, window.allDrawings);
@@ -191,9 +194,9 @@ windowClass.new = function(options: table)
 
 		local clickDetectors = window.clickDetectors;
 		userInputService.InputBegan:Connect(function(input, gameProcessed)
-			if (gameProcessed) then
+			--[[if (gameProcessed) then
 				return;
-			elseif (input.KeyCode == Enum.KeyCode.RightShift) then
+                  else]]if (input.KeyCode == Enum.KeyCode.RightShift) then
 				return window:toggle();
 			elseif (input.UserInputType ~= Enum.UserInputType.MouseButton1) then
 				return;
@@ -371,7 +374,7 @@ toggleClass.new = function(tab, options: table, offset: number)
 			Thickness         = 1;
 			Color             = color_rgb(255, 0, 0);
 			Position          = drawings.outline.Position + vector2(1, 1);
-			Size              = vector2(13, 13);
+			Size              = vector2(13.5, 13);
 			ZIndex            = 11;
 		}, toggle.window.allDrawings, tab.allDrawings);
 
@@ -480,7 +483,7 @@ sliderClass.new = function(tab, options: table, offset: number)
 			Thickness         = 1;
 			Color             = color_rgb(255, 0, 0);
 			Position          = drawings.outline.Position + vector2(1, 1);
-			Size              = vector2( (drawings.outline.Size.X - 2) * (slider.value - slider.min) / slider.max , drawings.outline.Size.Y - 2);
+			Size              = vector2( (drawings.outline.Size.X - 2) * (slider.value - slider.min) / slider.range, drawings.outline.Size.Y - 2);
 			ZIndex            = 11;
 		}, slider.window.allDrawings, tab.allDrawings);
 
@@ -534,7 +537,7 @@ sliderClass.new = function(tab, options: table, offset: number)
 			slider.flag.Changed(slider.value);
 
 			
-			slider.drawings.accent.Size = vector2( (slider.drawings.outline.Size.X - 2) * (slider.value - slider.min) / slider.max , slider.drawings.accent.Size.Y);
+			slider.drawings.accent.Size = vector2( (slider.drawings.outline.Size.X - 2) * (slider.value - slider.min) / slider.range , slider.drawings.accent.Size.Y);
 			slider.drawings.value.Text = slider.value .. slider.suffix;
 		end);
 	end;
@@ -768,15 +771,21 @@ do
 		local window = self.window;
 
 		local total       = window.tabSettings.index;
-		local width       = window.drawings.base.Size.X + 2;
+		local width       = window.drawings.innerOutline.Size.X;
 
-		local size        = width / total;
+		local size        = math.ceil(width / total);
 		local xOffset     = size * (self.id - 1);
 
-
-
 		self.drawings.outline.Position      = window.drawings.innerOutline.Position + vector2(xOffset, 0);
-		self.drawings.outline.Size          = vector2(size, 41);
+
+            if (self.id == total) then -- scuffed shit
+                  self.drawings.outline.Size = vector2((width - size * (total-1)), 41);
+            else
+                  self.drawings.outline.Size = vector2(size + 1, 41);
+            end;
+
+
+		-- self.drawings.outline.Size          = vector2(size + (self.id == total and -2 or 1), 41);
 		self.drawings.text.Position         = self.drawings.outline.Position + vector2(self.drawings.outline.Size.X / 2, 14);
 	end;
 
