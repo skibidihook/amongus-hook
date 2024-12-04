@@ -30,6 +30,10 @@ local math_round		= math.round;
 local table_insert      = table.insert;
 local table_find 		= table.find;
 
+local string_find       = string.find;
+local string_sub        = string.sub;
+local tostring          = tostring;
+
 local userInputService: UserInputService 	= cloneref(game:GetService('UserInputService'));
 local runService: RunService 			= cloneref(game:GetService('RunService'));
 
@@ -441,7 +445,6 @@ sliderClass.new = function(tab, options: table, offset: number)
 
 	slider.range = slider.max - slider.min;
 
-
 	-- flags
 	do
 		slider.flag = {
@@ -532,13 +535,12 @@ sliderClass.new = function(tab, options: table, offset: number)
 			local percentage 	= math_clamp(offset / maxX, 0, 1);
 
 			slider.value = math_round( slider.range * percentage / slider.increment ) * slider.increment + slider.min;
-			
+
 			slider.flag.value = slider.value;
 			slider.flag.Changed(slider.value);
 
-			
 			slider.drawings.accent.Size = vector2( (slider.drawings.outline.Size.X - 2) * (slider.value - slider.min) / slider.range , slider.drawings.accent.Size.Y);
-			slider.drawings.value.Text = slider.value .. slider.suffix;
+                  slider.drawings.value.Text = slider.value .. slider.suffix;
 		end);
 	end;
 
