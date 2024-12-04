@@ -27,6 +27,8 @@ local color_rgb         = Color3.fromRGB;
 local math_clamp		= math.clamp;
 local math_round		= math.round;
 
+local task_spawn		= task.spawn;
+
 local table_insert      = table.insert;
 local table_find 		= table.find;
 
@@ -91,6 +93,7 @@ windowClass.new = function(options: table)
 
 		clickDetectors 	= {};
 		flags             = {}; -- cheeky flags :P
+		connectedToggles	= {};
 
 		drawings          = {};
 		allDrawings       = {};
@@ -759,11 +762,18 @@ do
 	function windowClass:toggle()
 		local enabled = not self.active;
 		self.active = enabled;
-		
+
+		for i = 1, #self.connectedToggles do
+			task_spawn(self.connectedToggles[i], enabled);
+		end;
+
 		local offset = enabled and vector2(99999, 99999) or vector2(-99999, -99999);
 		for i = 1, #self.allDrawings do
 			self.allDrawings[i].Position += offset;
 		end;
+	end;
+	function windowClass:onToggle(_function)
+		table_insert(self.connectedToggles, _function);
 	end;
 end;
 
