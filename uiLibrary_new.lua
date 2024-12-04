@@ -14,8 +14,6 @@
 
 local GLOBAL_FONT = 1;
 
-local Drawing = require(script.Drawing);
-
 local cloneref		= cloneref or function(...) return ... end;
 
 
