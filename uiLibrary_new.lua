@@ -448,6 +448,12 @@ sliderClass.new = function(tab, options: table, offset: number)
 
 	slider.range = slider.max - slider.min;
 
+	local stringIncrement 	= tostring(slider.increment);
+	local dotIndex 		= string_find(stringIncrement, '.', 1, true);
+	if (dotIndex) then
+		slider.maxIndex = #stringIncrement - dotIndex;
+	end;
+
 	-- flags
 	do
 		slider.flag = {
@@ -518,7 +524,7 @@ sliderClass.new = function(tab, options: table, offset: number)
 			Color             = color_rgb(195, 195, 195);
 			OutlineColor      = color_rgb(0, 0, 0);
 			Position          = drawings.outline.Position + vector2(drawings.outline.Size.X / 2, 1);
-			ZIndex            = 11;
+			ZIndex            = 12;
 		}, slider.window.allDrawings, tab.allDrawings);
 	end;
 
@@ -543,7 +549,18 @@ sliderClass.new = function(tab, options: table, offset: number)
 			slider.flag.Changed(slider.value);
 
 			slider.drawings.accent.Size = vector2( (slider.drawings.outline.Size.X - 2) * (slider.value - slider.min) / slider.range , slider.drawings.accent.Size.Y);
-                  slider.drawings.value.Text = slider.value .. slider.suffix;
+                  
+			local stringValue = slider.value;
+			if (slider.maxIndex) then
+				stringValue = tostring(stringValue);
+
+				local dotIndex = string_find(tostring(stringValue), '.', 1, true);
+				if (dotIndex) then
+					stringValue = string_sub(tostring(stringValue), 1, slider.maxIndex + dotIndex);
+				end;
+			end;
+			
+			slider.drawings.value.Text = stringValue .. slider.suffix;
 		end);
 	end;
 
