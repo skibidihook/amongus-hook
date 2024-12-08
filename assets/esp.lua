@@ -52,6 +52,9 @@ playerESP.new = function(player: Player)
       local cache = playerESP.drawingCache[1];
       if (cache) then
             table.remove(playerESP.drawingCache, 1);
+            
+            cache.name.Text = player.DisplayName;
+
             self.allDrawings = cache.all;
             self.drawings = cache;
       else
