@@ -28,6 +28,7 @@ local math_clamp		= math.clamp;
 local math_round		= math.round;
 
 local task_spawn		= task.spawn;
+local task_delay 		= task.delay;
 
 local table_insert      = table.insert;
 local table_find 		= table.find;
@@ -72,6 +73,7 @@ local tabClass          = createClass();
 local toggleClass       = createClass();
 local sliderClass       = createClass();
 local dropdownClass	= createClass();
+local buttonClass		= createClass();
 
 
 
@@ -338,7 +340,7 @@ toggleClass.new = function(tab, options: table, offset: number)
 		tab         = tab;
 		window      = tab.window;
 		text        = options.text or 'Toggle';
-		enabled     = options.default or false;
+		enabled	= options.default or false;
 		drawings    = {};
 	}, toggleClass);
 
@@ -422,6 +424,13 @@ toggleClass.new = function(tab, options: table, offset: number)
 		toggle.drawings.accent.Transparency = enabled and 1 or 0;
 	end;
 
+	toggle.setValue = function(value)
+		toggle.enabled = value;
+		toggle.flag.value = value;
+		toggle.flag.Changed(value);
+		toggle.drawings.accent.Transparency = value and 1 or 0;
+	end;
+
 	toggle.window:onClick(toggle.drawings.clickDetector, toggle.onClicked);
 	tab.offsets[offset] += 20;
 
@@ -457,7 +466,7 @@ sliderClass.new = function(tab, options: table, offset: number)
 	-- flags
 	do
 		slider.flag = {
-			type = 'toggle';
+			type = 'slider';
 			value = slider.value;
 			self = slider;
 		}
@@ -564,6 +573,16 @@ sliderClass.new = function(tab, options: table, offset: number)
 		end);
 	end;
 
+	slider.setValue = function(value)
+		slider.value = value;
+
+		slider.flag.value = slider.value;
+		slider.flag.Changed(slider.value);
+
+		slider.drawings.accent.Size = vector2( (slider.drawings.outline.Size.X - 2) * (slider.value - slider.min) / slider.range , slider.drawings.accent.Size.Y);
+		slider.drawings.value.Text = slider.value .. slider.suffix;
+	end;
+
 	slider.window:onClick(slider.drawings.outline, slider.onClicked);
 
 	tab.offsets[offset] += 35;
@@ -581,7 +600,7 @@ dropdownClass.new = function(tab, options: table, offset: number)
 
 		text 		= options.text;
 		options 	= options.options;
-		value 	= options.default or options.options[1];
+		value 	= options.default or options.options[1] or 'None';
 
 		drawings 	= {};
 	}, dropdownClass);
@@ -589,7 +608,7 @@ dropdownClass.new = function(tab, options: table, offset: number)
 	-- flags
 	do
 		dropdown.flag = {
-			type = 'toggle';
+			type = 'dropdown';
 			value = dropdown.value;
 			self = dropdown;
 		}
@@ -699,11 +718,11 @@ dropdownClass.new = function(tab, options: table, offset: number)
 	end;
 
 	local rightOnClicked = function()
-		local index = table_find(dropdown.options, dropdown.value);
+		local index = table_find(dropdown.options, dropdown.value) or 0;
 
 		local value = dropdown.options[index + 1]; --or dropdown.options[1];
 		if (value == nil) then
-			value = dropdown.options[1];
+			value = dropdown.options[1] or 'None';
 		end;
 
 		dropdown.value = value;
@@ -714,13 +733,21 @@ dropdownClass.new = function(tab, options: table, offset: number)
 	end;
 
 	local leftOnClicked = function()
-		local index = table_find(dropdown.options, dropdown.value);
+		local index = table_find(dropdown.options, dropdown.value) or 2;
 
 		local value = dropdown.options[index - 1]; --or dropdown.options[1];
 		if (value == nil) then
-			value = dropdown.options[#dropdown.options];
+			value = dropdown.options[#dropdown.options] or 'None';
 		end;
 
+		dropdown.value = value;
+		dropdown.drawings.value.Text = value;
+
+		dropdown.flag.value = dropdown.value;
+		dropdown.flag.Changed(dropdown.value);
+	end;
+
+	dropdown.setValue = function(value)
 		dropdown.value = value;
 		dropdown.drawings.value.Text = value;
 
@@ -735,6 +762,64 @@ dropdownClass.new = function(tab, options: table, offset: number)
 	tab.offsets[offset] += 35;
 
 	return dropdown;
+end;
+buttonClass.new = function(tab, text: string, onClick, offset: number)
+	assert(type(tab) == 'table', `invalid argument #1 to 'buttonClass.new' (table expected, got {type(tab)})`);
+	assert(type(onClick) == 'function', `invalid argument #2 to 'buttonClass.new' (function expected, got {type(onClick)})`);
+	assert(type(offset) == 'number', `invalid argument #3 to 'buttonClass.new' (number expected, got {type(offset)})`);
+
+	local button = setmetatable({
+		tab         = tab;
+		window      = tab.window;
+		text        = text;
+
+		drawings    = {};
+	}, buttonClass);
+
+	-- drawings
+	do
+		local drawings = button.drawings;
+
+		drawings.outline 	= createDrawing('Square', {
+			Visible           = tab.active;
+			Filled            = false;
+			Transparency      = 1;
+			Thickness         = 1;
+			Color             = color_rgb(7, 7, 7);
+			Position          = button.window.drawings[`sectionOutline{offset}`].Position + vector2(15, tab.offsets[offset]);
+			Size              = vector2(button.window.drawings.sectionOutline1.Size.X - 30, 15);
+			ZIndex            = 11;
+		}, button.window.allDrawings, tab.allDrawings);
+
+		drawings.text 	= createDrawing('Text', {
+			Visible           = tab.active;
+			Center            = true;
+			Outline           = true;
+			Transparency      = 1;
+			Size              = 13;
+			Font              = GLOBAL_FONT;
+			Text              = button.text;
+			Color             = color_rgb(195, 195, 195);
+			OutlineColor      = color_rgb(0, 0, 0);
+			Position          = drawings.outline.Position + vector2(drawings.outline.Size.X / 2, 1);
+			ZIndex            = 12;
+		}, button.window.allDrawings, tab.allDrawings);
+	end;
+
+	local onClicked = function()
+		button.drawings.text.Color = color_rgb(255, 255, 255);
+		task_delay(0.3, function()
+			button.drawings.text.Color = color_rgb(195, 195, 195);
+		end);
+
+		onClick();
+	end;
+	
+	button.window:onClick(button.drawings.outline, onClicked);
+
+	tab.offsets[offset] += 20;
+
+	return button;
 end;
 
 -- windowClass functions
@@ -856,6 +941,10 @@ do
 
 	function tabClass:addDropdown(options: table, offset: number)
 		return dropdownClass.new(self, options, offset);
+	end;
+
+	function tabClass:addButton(text: string, onClick, offset: number)
+		return buttonClass.new(self, text, onClick, offset);
 	end;
 end;
 
