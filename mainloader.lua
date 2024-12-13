@@ -10,14 +10,9 @@ if (not request) then
 	return messagebox('request function is unsupported!', 'amongus.hook', 48);
 elseif (not loadstring) then
 	return messagebox('loadstring function is unsupported!', 'amongus.hook', 48);
-elseif ((identifyexecutor and identifyexecutor() == 'Wave')) then
+elseif (not Drawing) then
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/mainstreamed/amongus-hook/refs/heads/main/drawingfix.lua"))(); -- fuck you wave!!!
 end;
-
--- if ((identifyexecutor and identifyexecutor() == 'Wave')) then
--- 	loadstring(game:HttpGet("https://raw.githubusercontent.com/smi9/UnnamedCheats/main/drawing.lua"))(); -- fuck you wave!!!
--- end
-
 	
 local placeid = game.PlaceId;
 local dir = 'https://raw.githubusercontent.com/mainstreamed/amongus-hook/main/';
@@ -25,7 +20,7 @@ local dir = 'https://raw.githubusercontent.com/mainstreamed/amongus-hook/main/';
 local statuslist = {
 	['fallensurvival'] = {
 		name = 'Fallen Survival',
-		status = 'Detected',
+		status = 'Undetected',
 	},
 	['tridentsurvival'] = {
 		name = 'Trident Survival',
