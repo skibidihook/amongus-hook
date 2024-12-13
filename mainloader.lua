@@ -20,7 +20,7 @@ local dir = 'https://raw.githubusercontent.com/mainstreamed/amongus-hook/main/';
 local statuslist = {
 	['fallensurvival'] = {
 		name = 'Fallen Survival',
-		status = 'Detected',
+		status = 'Undetected',
 	},
 	['tridentsurvival'] = {
 		name = 'Trident Survival',
