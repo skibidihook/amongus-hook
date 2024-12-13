@@ -2,7 +2,6 @@ local cloneref          = cloneref or function(...) return ...; end;
 local compareinstances  = compareinstances or rawequal;
 
 local runService        = cloneref(game:GetService('RunService'));
-local SocialService = game:GetService('SocialService')
 
 local currentCamera     = cloneref(workspace.CurrentCamera);
 
