@@ -40,7 +40,7 @@ end;
 
 if (placeid == 13253735473) then
 	return load('tridentsurvival');
-elseif (placeid == 13800717766 or placeid == 15479377118) then
+elseif (placeid == 13800717766 or placeid == 15479377118 or placeid == 10228136016) then
 	return load('fallensurvival');
 end;
 messagebox(`This Game is Unsupported!\n\nIf you believe this is incorrect, please open a ticket in our discord! - discord.gg/2jycAcKvdw`, `amongus.hook [{placeid}]`, 48);
