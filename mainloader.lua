@@ -2,45 +2,103 @@ if not game:IsLoaded() then
 	game.Loaded:Wait()
 end;
 
-local messagebox = messagebox or function(message, title, id) warn(`[{title} - {message}`); return 6; end;
-local request = request or http_request;
-local loadstring = loadstring;
-
-if (not request) then
-	return messagebox('request function is unsupported!', 'amongus.hook', 48);
-elseif (not loadstring) then
-	return messagebox('loadstring function is unsupported!', 'amongus.hook', 48);
-elseif (not Drawing) then
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/mainstreamed/amongus-hook/refs/heads/main/drawingfix.lua"))(); -- fuck you wave!!!
+local players 		= game:GetService('Players');
+local localPlayer 	= players.LocalPlayer;
+if (not localPlayer) then
+	players:GetPropertyChangedSignal('LocalPlayer'):Wait();
+	localPlayer = players.LocalPlayer;
 end;
+
+local executor 	= identifyexecutor and identifyexecutor() or 'Unknown';
+
+local messagebox 	= messagebox;
+local request 	= request or http_request;
+local loadstring 	= loadstring;
+
+if (type(messagebox) ~= 'function') then
+	return localPlayer:Kick('[amongus.hook] missing alias ( messagebox )');
+end;
+
+local protectedMessagebox = function(body, title, id)
+	local success, output = pcall(messagebox, body, title, id);
+	if (not success) then
+		localPlayer:Kick(`[amongus.hook] messagebox_error - {body}`);
+		task.wait(9e9);
+		return;
+	end;
+	return output;
+end;
+local protectedLoad = function(url)
+	local success, response = pcall(request, {Url=url; Method='GET';});
+	if (not success) then
+		protectedMessagebox(`protectedLoad failed(1) - request error\n\nurl: {url}`, `amongus.hook [{executor}]`, 48);
+		task.wait(9e9);
+		return;
+	elseif (type(response) ~= 'table' or type(response.Body) ~= 'string' or response.StatusCode ~= 200) then
+            protectedMessagebox(`protectedLoad failed(2) - bad response\n\nurl: {url}`, `amongus.hook [{executor}]`, 48);
+		task.wait(9e9);
+		return;
+      end;
+      local loader = loadstring(response.Body);
+      if (not loader) then
+            protectedMessagebox(`protectedLoad failed(3) - syntax error\n\nurl: {url}`, `amongus.hook [{executor}]`, 48);
+		task.wait(9e9);
+		return;
+      end;
+      return loader();
+end;
+
+if (type(loadstring) ~= 'function') then
+	return protectedMessagebox(`missing alias ( loadstring )`, `amongus.hook [{executor}]`, 48);
+elseif (type(request) ~= 'function') then
+	return protectedMessagebox(`missing alias ( request )`, `amongus.hook [{executor}]`, 48);
+elseif (Drawing) then
+	protectedLoad('https://raw.githubusercontent.com/mainstreamed/amongus-hook/refs/heads/main/drawingfix.lua');
+end;
+
+
+
+
+
+
+
+
+
+
 	
 local placeid = game.PlaceId;
 local dir = 'https://raw.githubusercontent.com/mainstreamed/amongus-hook/main/';
 
-local statuslist = {
-	['fallensurvival'] = {
-		name = 'Fallen Survival',
-		status = 'Undetected',
-	},
-	['tridentsurvival'] = {
-		name = 'Trident Survival',
-		status = 'Detected',
-	},
+local statuslist = {};
+
+statuslist.fallensurvival = {
+	name 		= 'Fallen Survival';
+	status 	= 'Undetected';
+	support 	= {'Wave'; 'AWP'};
+};
+statuslist.tridentsurvival = {
+	name 		= 'Trident Survival';
+	status 	= 'Detected';
+	support 	= {'Wave'; 'Nihon'; 'AWP'; 'Synapse Z'};
 };
 
 local load = function(name)
 	local game = statuslist[name];
-	if (game.status ~= 'Undetected') then
-		if (messagebox(`{game.name} is Currently Marked as {game.status}!\n\nAre You Sure You Want to Continue?`, `amongus.hook`, 52) ~= 6) then
-			return;
-		end;
+	if (game.status ~= 'Undetected' and protectedMessagebox(`{game.name} is Currently Marked as {game.status}!\n\nAre You Sure You Want to Continue?`, `amongus.hook`, 52) ~= 6) then
+		return;
+	elseif (
+		game.support and 
+		not table.find(game.support, executor) and 
+		protectedMessagebox(`Unsupported Executor!\n\n{executor} is not Officially Supported for Fallen Survival\nand may have Undefined Behaviour or even result in a BAN!\n\nAre You Sure You Want to Continue?`, `amongus.hook [{executor}]`, 52) ~= 6
+	) then
+		return;
 	end;
-	loadstring(request({Url=`{dir}{name}/main.lua`,Method='GET'}).Body)();
+	protectedLoad(`{dir}{name}/main.lua`);
 end;
 
 if (placeid == 13253735473) then
 	return load('tridentsurvival');
 elseif (placeid == 13800717766 or placeid == 15479377118 or placeid == 16849012343) then
-	return load('fallensurvival');
+    return load('fallensurvival');
 end;
-messagebox(`This Game is Unsupported!\n\nIf you believe this is incorrect, please open a ticket in our discord! - discord.gg/2jycAcKvdw`, `amongus.hook [{placeid}]`, 48);
+protectedMessagebox(`This Game is Unsupported!\n\nIf you believe this is incorrect, please open a ticket in our discord! - discord.gg/2jycAcKvdw`, `amongus.hook [{placeid}]`, 48);
