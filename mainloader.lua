@@ -9,10 +9,10 @@ if (not localPlayer) then
 	localPlayer = players.LocalPlayer;
 end;
 
-local executor 	= identifyexecutor and identifyexecutor() or 'Unknown';
+local executor 		= identifyexecutor and identifyexecutor() or 'Unknown';
 
 local messagebox 	= messagebox;
-local request 	= request or http_request;
+local request 		= request or http_request;
 local loadstring 	= loadstring;
 
 if (type(messagebox) ~= 'function') then
