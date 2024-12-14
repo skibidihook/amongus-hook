@@ -52,7 +52,7 @@ if (type(loadstring) ~= 'function') then
 	return protectedMessagebox(`missing alias ( loadstring )`, `amongus.hook [{executor}]`, 48);
 elseif (type(request) ~= 'function') then
 	return protectedMessagebox(`missing alias ( request )`, `amongus.hook [{executor}]`, 48);
-elseif (Drawing) then
+elseif (not Drawing) then
 	protectedLoad('https://raw.githubusercontent.com/mainstreamed/amongus-hook/refs/heads/main/drawingfix.lua');
 end;
 
