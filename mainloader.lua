@@ -55,16 +55,6 @@ elseif (type(request) ~= 'function') then
 elseif (not Drawing) then
 	protectedLoad('https://raw.githubusercontent.com/mainstreamed/amongus-hook/refs/heads/main/drawingfix.lua');
 end;
-
-
-
-
-
-
-
-
-
-
 	
 local placeid = game.PlaceId;
 local dir = 'https://raw.githubusercontent.com/mainstreamed/amongus-hook/main/';
@@ -79,7 +69,7 @@ statuslist.fallensurvival = {
 statuslist.tridentsurvival = {
 	name 		= 'Trident Survival';
 	status 	= 'Undetected';
-	support 	= {'Wave'; 'Nihon'; 'AWP'; 'Synapse Z'};
+	support 	= {'Wave'; 'Nihon'; 'AWP'; 'Synapse Z'; 'MacSploit'};
 };
 
 local load = function(name)
