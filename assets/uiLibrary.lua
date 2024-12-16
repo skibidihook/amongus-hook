@@ -11,8 +11,45 @@
 	tab spacing is scuffed asf (might need to fix if i can be bothered (I CANT) )
 ]]
 
+--[[
+	TODO:
+	- take advanatge of the classes more ( dont have local onclicked functions and whatnot )
+]]
 
+-- w constants
 local GLOBAL_FONT = 1;
+local KEY_CONVERSION = {
+	['One'] 		= '1';
+	['Two'] 		= '2';
+	['Three'] 		= '3';
+	['Four'] 		= '4';
+	['Five'] 		= '5';
+	['Six'] 		= '6';
+	['Seven'] 		= '7';
+	['Eight'] 		= '8';
+	['Nine'] 		= '9';
+	['Zero'] 		= '0';
+	['Return'] 		= 'Enter';
+	['LeftBracket'] 	= 'LBracket';
+	['RightBracket'] 	= 'RBracket';
+	['Equals'] 		= '=';
+	['Minus'] 		= '-';
+	['Escape'] 		= 'Esc';
+	['LeftShift'] 	= 'LShift';
+	['RightShift'] 	= 'RShift';
+	['RightControl'] 	= 'RCtrl';
+	['LeftControl'] 	= 'LCtrl';
+	['Quote'] 		= "'";
+	['Semicolon']	= ';';
+	['Delete'] 		= 'Del';
+	['Up'] 		= 'UpArrow';
+	['Down'] 		= 'DownArrow';
+	['Right'] 		= 'RightArrow';
+	['Left'] 		= 'LeftArrow';
+	['RightAlt'] 	= 'RAlt';
+	['LeftAlt'] 	= 'LAlt';
+	['MouseButton2'] 	= 'MB2';
+};
 
 -- local Drawing = require(script.Drawing);
 
@@ -47,7 +84,7 @@ local camera            = cloneref(workspace.CurrentCamera);
 
 
 
-local createDrawing = function(_type, properties, ...): DrawingObject
+local createDrawing = function(_type, properties, ...)
 	local drawing = drawing_new(_type);
 	for index, value in properties do
 		drawing[index] = value;
@@ -74,6 +111,7 @@ local toggleClass       = createClass();
 local sliderClass       = createClass();
 local dropdownClass	= createClass();
 local buttonClass		= createClass();
+local keypickerClass	= createClass();
 
 
 
@@ -85,7 +123,7 @@ windowClass.new = function(options: table)
 		id                = windowClass.index;
 		active            = true;
 		title             = options.title or 'amongus.hook';
-		size              = options.size or vector2(600, 360);
+		size              = options.size or vector2(600, 500);
 		position          = camera.ViewportSize / 2;
 
 		tabSettings       = {
@@ -94,6 +132,8 @@ windowClass.new = function(options: table)
 		};
 
 		clickDetectors 	= {};
+		keyDetectors 	= {};
+		keyEnd		= {};
 		flags             = {}; -- cheeky flags :P
 		connectedToggles	= {};
 
@@ -201,8 +241,16 @@ windowClass.new = function(options: table)
 	do
 		-- click detectors
 
-		local clickDetectors = window.clickDetectors;
+		local clickDetectors 	= window.clickDetectors;
+		local keyDetectors	= window.keyDetectors;
+		local keyEnd 		= window.keyEnd;
+
+
 		userInputService.InputBegan:Connect(function(input, gameProcessed)
+			for i = 1, #keyDetectors do
+				keyDetectors[i](input, gameProcessed);
+			end;
+			
 			--[[if (gameProcessed) then
 				return;
                   else]]if (input.KeyCode == Enum.KeyCode.RightShift) then
@@ -219,7 +267,12 @@ windowClass.new = function(options: table)
 			end;
 		end);
 
-		userInputService.InputEnded:Connect(function(input)
+		userInputService.InputEnded:Connect(function(input, gameProcessed)
+
+			for i = 1, #keyEnd do
+				keyEnd[i](input, gameProcessed);
+			end;
+
 			if (input.UserInputType ~= Enum.UserInputType.MouseButton1) then
 				return;
 			end;
@@ -822,6 +875,177 @@ buttonClass.new = function(tab, text: string, onClick, offset: number)
 	return button;
 end;
 
+
+keypickerClass.new = function(toggle, options: table)
+	assert(type(toggle) == 'table', `invalid argument #1 to 'keypickerClass.new' (table expected, got {type(toggle)})`);
+	assert(type(options) == 'table', `invalid argument #2 to 'keypickerClass.new' (table expected, got {type(options)})`);
+
+	local keypicker = setmetatable({
+		tab         = toggle.tab;
+		toggle 	= toggle;
+		window      = toggle.window;
+		active 	= false;
+		value     	= KEY_CONVERSION[options.default] or options.default or 'None';
+		blacklisted	= options.blacklisted or {};
+		mode 		= options.mode or 'toggle';
+
+		drawings    = {};
+	}, keypickerClass);
+
+		-- flags
+		do
+			keypicker.flag = {
+				type 	= 'keypicker';
+				key 	= keypicker.value;
+				value = false;
+				self 	= keypicker;
+			}
+			keypicker.flag.Changed = function(...) end
+			if (options.flag) then
+				function keypicker.flag:OnChanged(_function)
+					keypicker.flag.Changed = _function;
+					_function(keypicker.flag.value);
+				end;
+				keypicker.window.flags[options.flag] = keypicker.flag;
+			end;
+		end;
+
+	-- drawings
+	do
+		local drawings = keypicker.drawings;
+
+		drawings.text 	= createDrawing('Text', {
+			Visible           = keypicker.tab.active;
+			-- Center            = true;
+			Outline           = true;
+			Transparency      = 1;
+			Size              = 13;
+			Font              = GLOBAL_FONT;
+			Text              = '[ loading ]';
+			Color             = color_rgb(195, 195, 195);
+			OutlineColor      = color_rgb(0, 0, 0);
+			-- Position          = drawings.outline.Position + vector2(drawings.outline.Size.X / 2, 1);
+			ZIndex            = 12;
+		}, keypicker.window.allDrawings, keypicker.tab.allDrawings);
+
+		drawings.clickDetector 	= createDrawing('Square', {
+			Visible           = keypicker.tab.active;
+			Filled            = false;
+			Transparency      = 1;
+			Thickness         = 1;
+			Color             = color_rgb(255, 42, 191);
+			Position          = nil; --button.window.drawings[`sectionOutline{offset}`].Position + vector2(15, tab.offsets[offset]);
+			Size              = nil;--vector2(button.window.drawings.sectionOutline1.Size.X - 30, 15);
+			ZIndex            = -999;
+		}, keypicker.window.allDrawings, keypicker.tab.allDrawings);
+	end;
+
+
+	local onKeyPress = function(key)
+		if (keypicker.active) then
+			local keyValue 	= key.KeyCode.Name;
+
+			if (keyValue == 'Unknown') then
+				keyValue = key.UserInputType.Name;
+				if (keyValue ~= 'MouseButton2') then
+					return;
+				end;
+			end;
+
+			for index, value in keypicker.blacklisted do
+				if (value == keyValue) then
+					return;
+				end;
+			end;
+
+
+			keypicker.active 		= false;
+			keypicker.value 		= KEY_CONVERSION[keyValue] or keyValue;
+			keypicker.flag.key 	= keypicker.value;
+			keypicker:update();
+
+			return;
+		elseif (keypicker.value == 'None') then
+			return;
+		end;
+
+		local keyValue 	= key.KeyCode.Name;
+
+		if (keyValue == 'Unknown') then
+			keyValue = key.UserInputType.Name;
+			if (keyValue ~= 'MouseButton2') then
+				return;
+			end;
+		end;
+
+		keyValue = KEY_CONVERSION[keyValue] or keyValue;
+
+		if (keypicker.value == keyValue) then
+
+			local value = keypicker.mode ~= 'toggle' and true or not keypicker.flag.value;
+
+			keypicker.flag.value = value;
+			keypicker.flag.Changed(value);
+		end;
+	end;
+
+	local onKeyEnd = function(key)
+		if (keypicker.active or keypicker.value == 'None' or keypicker.mode == 'toggle') then
+			return;
+		end;
+
+
+		local keyValue 	= key.KeyCode.Name;
+		if (keyValue == 'Unknown') then
+			keyValue = key.UserInputType.Name;
+			if (keyValue ~= 'MouseButton2') then
+				return;
+			end;
+		end;
+
+		keyValue = KEY_CONVERSION[keyValue] or keyValue;
+		if (keypicker.value == keyValue) then
+			keypicker.flag.value = false;
+			keypicker.flag.Changed(false);
+		end;
+
+	end;
+
+	local onClicked = function()
+		keypicker.flag.value = false;
+
+		if (keypicker.active) then
+
+			keypicker.active = false;
+			keypicker.value = 'None';
+			keypicker:update();
+
+			return;
+		end;
+
+		keypicker.active = true;
+		keypicker.value = '...';
+		keypicker:update();
+	end;
+
+	keypicker.window:onClick(keypicker.drawings.clickDetector, onClicked);
+	keypicker.window:addKeyDetector(onKeyPress);
+	keypicker.window:addKeyEnd(onKeyEnd);
+
+	keypicker:update();
+	keypicker.setValue = function(value, key)
+		
+		keypicker.value = key;
+		keypicker.flag.value = value;
+		keypicker.flag.Changed(value);
+
+		keypicker:update();
+	end;
+
+	return keypicker;
+end;
+
+
 -- windowClass functions
 do
 	function windowClass:addTab(tabName: string)
@@ -876,6 +1100,12 @@ do
 	end;
 	function windowClass:onToggle(_function)
 		table_insert(self.connectedToggles, _function);
+	end;
+	function windowClass:addKeyDetector(_function)
+		table_insert(self.keyDetectors, _function);
+	end;
+	function windowClass:addKeyEnd(_function)
+		table_insert(self.keyEnd, _function);
 	end;
 end;
 
@@ -948,5 +1178,31 @@ do
 	end;
 end;
 
+-- keypickerClass functions
+do
+	function keypickerClass:update()
+		local drawings = self.drawings;
 
-return windowClass;
+		local text 			= drawings.text;
+		local clickDetector 	= drawings.clickDetector;
+
+		text.Text 			= `[{self.value}]`;
+
+		local textBounds		= text.TextBounds;
+		local position 		= self.toggle.drawings.outline.Position + vector2(self.window.drawings.sectionOutline1.Size.X - 30 - textBounds.X, 0);
+
+		text.Position			= position
+		clickDetector.Size 		= textBounds;
+		clickDetector.Position		= position;
+	end;
+end;
+
+-- toggleClass functions
+do
+	function toggleClass:addKeypicker(options)
+		return keypickerClass.new(self, options);
+	end;
+end;
+
+
+return windowClass, 1;
