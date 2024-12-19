@@ -16,7 +16,7 @@ local request 		= request or http_request;
 local loadstring 	= loadstring;
 
 if (type(messagebox) ~= 'function') then
-	return localPlayer:Kick('[amongus.hook] missing alias ( messagebox )');
+	return localPlayer:Kick('[amongus.hook] missing alias ( messagebox ) - unsupported executor');
 end;
 
 local protectedMessagebox = function(body, title, id)
@@ -49,9 +49,9 @@ local protectedLoad = function(url)
 end;
 
 if (type(loadstring) ~= 'function') then
-	return protectedMessagebox(`missing alias ( loadstring )`, `amongus.hook [{executor}]`, 48);
+	return protectedMessagebox(`missing alias ( loadstring ) - unsupported executor`, `amongus.hook [{executor}]`, 48);
 elseif (type(request) ~= 'function') then
-	return protectedMessagebox(`missing alias ( request )`, `amongus.hook [{executor}]`, 48);
+	return protectedMessagebox(`missing alias ( request ) - unsupported executor`, `amongus.hook [{executor}]`, 48);
 elseif (not Drawing) then
 	protectedLoad('https://raw.githubusercontent.com/mainstreamed/amongus-hook/refs/heads/main/drawingfix.lua');
 end;
