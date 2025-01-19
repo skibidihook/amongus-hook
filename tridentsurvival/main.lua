@@ -38,12 +38,13 @@ end;
 local source = game:HttpGet('https://raw.githubusercontent.com/mainstreamed/amongus-hook/refs/heads/main/tridentsurvival/obfuscated.lua');
 
 local fastflag = getfflag and getfflag('DebugRunParallelLuaOnMainThread');
-if (fastflag == 'false' or fastflag == 'False' or fastflag == false) then
+if (fastflag == 'true' or fastflag == 'True' or fastflag == true) then
       loadstring(source)();
       return;
 elseif (run_on_actor and check_run_on_actor()) then
       local actor = getactors and getactors()[1] or localplayer:FindFirstChildWhichIsA('Actor', true);
       if (actor) then
+            -- print('actor ran');
             return run_on_actor(actor, source);
       end;
 end;
