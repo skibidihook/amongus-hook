@@ -1,4 +1,8 @@
 local check_run_on_actor = function()
+      if (identifyexecutor and identifyexecutor() ~= 'Wave') then
+            return true;
+      end;
+
       local event = Instance.new('BindableEvent', game:GetService('CoreGui'));
       event.Name = 'communicator';
 
@@ -44,7 +48,6 @@ if (fastflag == 'true' or fastflag == 'True' or fastflag == true) then
 elseif (run_on_actor and check_run_on_actor()) then
       local actor = getactors and getactors()[1] or localplayer:FindFirstChildWhichIsA('Actor', true);
       if (actor) then
-            -- print('actor ran');
             return run_on_actor(actor, source);
       end;
 end;
