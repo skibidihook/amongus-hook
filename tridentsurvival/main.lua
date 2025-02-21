@@ -1,5 +1,5 @@
 local check_run_on_actor = function()
-      if (identifyexecutor and identifyexecutor() ~= 'Wave') then
+      if (identifyexecutor and identifyexecutor() == 'AWP') then
             return true;
       end;
 
