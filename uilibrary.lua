@@ -202,25 +202,38 @@ do
 				Visible = true,
 				Color = color3_fromrgb(0, 0, 0),
 				Transparency = 0.5,
+				Thickness = 1,
 				Filled = true,
 				Position = vector2_new(0, 40 + (library.tabinfo.amount * 15)),
 				Size = vector2_new(menuwidth, 15),
+				ZIndex = 0;
 			}, {library.alldrawings})
 			tab.drawings.text = createDrawing('Text', {
 				Visible = true,
 				Color = color3_fromrgb(255, 255, 255),
 				Font = 1,
+				Outline = true;
 				Position = tab.drawings.base.Position,
 				Size = 14,
+				Center = false;
 				Text = text,
+				OutlineColor = color3_fromrgb(0, 0, 0);
+
+				Transparency = 1,
+				ZIndex = 1;
 			}, {library.alldrawings})
 			tab.drawings.arrow = createDrawing('Text', {
 				Visible = true,
 				Color = color3_fromrgb(255, 255, 255),
 				Text = '<',
+				Outline = true;
+				Center = false;
 				Font = 1,
 				Position = tab.drawings.base.Position + vector2_new(menuwidth-10, 0),
 				Size = 14,
+				OutlineColor = color3_fromrgb(0, 0, 0);
+				Transparency = 1,
+				ZIndex = 1;
 			}, {library.alldrawings})
 
 		end
@@ -297,8 +310,12 @@ do
                                     Visible = false,
 						Transparency = 0.5,
 						Filled = true,
+						Color = color3_fromrgb(0, 0, 0),
+						Thickness = 1,
+
 						Position = tab.drawings.base.Position + vector2_new(menuwidth + 10, tab.options.amount*15),
 						Size = vector2_new(menuwidth, 15),
+						ZIndex = 0;
 					}, {library.alldrawings})
 					button.drawings.text = createDrawing('Text', {
                                     Visible = false,
@@ -306,7 +323,13 @@ do
 						Font = 1,
 						Position = button.drawings.base.Position,
 						Size = 14,
+						Outline = true;
+						Center = false;
+						OutlineColor = color3_fromrgb(0, 0, 0);
+						Transparency = 1,
+						ZIndex = 1;
 						Text = name or 'Button',
+						ZIndex = 1;
 					}, {library.alldrawings})
 				end
 				--functions 
@@ -360,18 +383,26 @@ do
 				do
 					toggle.drawings.base = createDrawing('Square', {
 						Visible = false,
+						Color = color3_fromrgb(0, 0, 0),
                                     Transparency = 0.5,
 						Filled = true,
+						Thickness = 1,
 						Position = tab.drawings.base.Position + vector2_new(menuwidth + 10, tab.options.amount*15),
 						Size = vector2_new(menuwidth, 15),
+						ZIndex = 0;
 					}, {library.alldrawings})
 					toggle.drawings.text = createDrawing('Text', {
                                     Visible = false,
 						Color = color3_fromrgb(255, 255, 255),
 						Font = 1,
+						Outline = true;
+						Center = false;
+						OutlineColor = color3_fromrgb(0, 0, 0);
 						Position = toggle.drawings.base.Position,
 						Size = 14,
 						Text = prop.text or 'Toggle',
+						Transparency = 1,
+						ZIndex = 1;
 					}, {library.alldrawings})
 				end
 				--functions 
@@ -452,17 +483,26 @@ do
 				do
 					slider.drawings.base = createDrawing('Square', {
                                     Visible = false,
+						Color = color3_fromrgb(0, 0, 0),
 						Transparency = 0.5,
 						Filled = true,
+						Thickness = 1,
 						Position = tab.drawings.base.Position + vector2_new(menuwidth + 10, tab.options.amount*15),
 						Size = vector2_new(menuwidth, 15),
+						ZIndex = 0;
 					}, {library.alldrawings})
 					slider.drawings.text = createDrawing('Text', {
                                     Visible = false,
+						Text = '';
+						Outline = true;
+						Center = false;
 						Color = color3_fromrgb(255, 255, 255),
 						Font = 1,
 						Position = slider.drawings.base.Position,
 						Size = 14,
+						OutlineColor = color3_fromrgb(0, 0, 0);
+						Transparency = 1,
+						ZIndex = 1;
 					}, {library.alldrawings})
 				end
 				--functions 
@@ -569,17 +609,26 @@ do
                         do
                               dropdown.drawings.base = createDrawing('Square', {
                                     Visible = false,
+						Color = color3_fromrgb(0, 0, 0),
 						Transparency = 0.5,
 						Filled = true,
+						Thickness = 1,
 						Position = tab.drawings.base.Position + vector2_new(menuwidth + 10, tab.options.amount*15),
 						Size = vector2_new(menuwidth, 15),
+						ZIndex = 0;
 					}, {library.alldrawings})
 					dropdown.drawings.text = createDrawing('Text', {
                                     Visible = false,
 						Color = color3_fromrgb(255, 255, 255),
 						Font = 1,
+						Text = '';
+						Outline = true;
+						Center = false;
 						Position = dropdown.drawings.base.Position,
 						Size = 14,
+						OutlineColor = color3_fromrgb(0, 0, 0);
+						Transparency = 1,
+						ZIndex = 1;
 					}, {library.alldrawings})
                         end;
 
