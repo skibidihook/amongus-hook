@@ -694,6 +694,7 @@ do
 		return tab;
 	end
 end
+library.whitelist = {};
 _G.amonguslib_loaded = true;
 
 return library, flags;
