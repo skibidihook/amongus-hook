@@ -1,4 +1,4 @@
--- skibidi example..
+-- load the library first, then call :new() to get window + flags
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/skibidihook/amongus-hook/refs/heads/main/assets/uiLibrary.lua"))()
 
 -- create window and flags
@@ -78,10 +78,9 @@ game:GetService("RunService").RenderStepped:Connect(function()
     if Flags.AimbotToggleFlag.value then
         local fov   = Flags.AimbotFOV.value
         local key   = Flags.AimbotKey.key
-        local color = Flags.AimbotColor.value
-        -- do aimbot stuff
+        
     end
 end)
 
--- super cool notify!
+-- notify example
 Window:notify("amongus.hook loaded successfully!", 3)
