@@ -1,4 +1,4 @@
--- load the library first, then call :new() to get window + flags
+-- skibidi example..
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/skibidihook/amongus-hook/refs/heads/main/assets/uiLibrary.lua"))()
 
 -- create window and flags
@@ -83,5 +83,5 @@ game:GetService("RunService").RenderStepped:Connect(function()
     end
 end)
 
--- notify example
+-- super cool notify!
 Window:notify("amongus.hook loaded successfully!", 3)
