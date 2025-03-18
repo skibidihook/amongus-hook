@@ -1,38 +1,32 @@
-local UI, Flags = loadstring(game:HttpGet("https://raw.githubusercontent.com/skibidihook/amongus-hook/refs/heads/main/assets/uiLibrary.lua"))()
+-- load the library first, then call :new() to get window + flags
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/skibidihook/amongus-hook/refs/heads/main/assets/uiLibrary.lua"))()
 
--- window
-local Window, WindowFlags = UI:new({
-    title = "amongus.hook Example",           -- title
-    size  = Vector2.new(600, 400),            -- size of window
+-- create window and flags
+local Window, Flags = Library:new({
+    title = "amongus.hook Example", -- title
+    size  = Vector2.new(600, 400),  -- window size
 })
 
 -- tabs
 local CombatTab = Window:addTab("Combat")
 local VisualsTab = Window:addTab("Visuals")
 
-
--- add a basic toggle
+-- toggle
 local aimbotToggle = CombatTab:addToggle({
-    text    = "Enable Aimbot",
+    text    = "Aimbot",
     default = false,
-    flag    = "AimbotToggleFlag",            -- use this to reference it in your code
-}, 1)  -- '1' means it goes in the left column. '2' would place it in the right column
+    flag    = "AimbotToggleFlag",
+}, 1)
 
--- add a keypicker to the toggle
+-- keypicker
 aimbotToggle:addKeypicker({
-    default    = "F",          -- default key
-    blacklisted= {"W", "A"},   -- just an example of blacklisting some keys
-    mode       = "toggle",     -- "toggle" or "hold"
-    flag       = "AimbotKey",
+    default     = "F",
+    blacklisted = {"W", "A"},
+    mode        = "toggle", -- can do hold too
+    flag        = "AimbotKey",
 })
 
--- colourpicker to the same toggle
-aimbotToggle:addColourpicker({
-    default = Color3.fromRGB(255, 0, 0),
-    flag    = "AimbotColor",
-})
-
--- slider for FOV
+-- slider
 local fovSlider = CombatTab:addSlider({
     text     = "Aimbot FOV",
     min      = 0,
@@ -56,44 +50,38 @@ CombatTab:addButton("Force Target Refresh", function()
     print("Force Refresh Pressed")
 end, 1)
 
-
--- toggle in the right column (offset = 2)
+-- toggle in right column
 local espToggle = VisualsTab:addToggle({
     text    = "Show ESP",
     default = false,
     flag    = "ESPToggleFlag",
 }, 2)
 
--- slider in the right column
+-- slider in right column
 local espDistanceSlider = VisualsTab:addSlider({
-    text    = "ESP Render Distance",
-    min     = 50,
-    max     = 2000,
-    default = 500,
+    text      = "ESP Render Distance",
+    min       = 50,
+    max       = 2000,
+    default   = 500,
     increment = 50,
-    suffix  = " studs",
-    flag    = "ESPDistance",
+    suffix    = " studs",
+    flag      = "ESPDistance",
 }, 2)
 
-
--- how to use flags below
-
-
--- listening for changes in the "AimbotToggleFlag"
+-- listen for changes in "AimbotToggleFlag"
 Flags.AimbotToggleFlag:OnChanged(function(value)
     print("Aimbot enabled changed to:", value)
 end)
 
--- regularly check in a loop (e.g. aimbot script)
+-- loop check
 game:GetService("RunService").RenderStepped:Connect(function()
     if Flags.AimbotToggleFlag.value then
-        -- Aimbot is ON, do your aimbot stuff
-        local fov = Flags.AimbotFOV.value
-        local key = Flags.AimbotKey.key     -- which key is bound
+        local fov   = Flags.AimbotFOV.value
+        local key   = Flags.AimbotKey.key
         local color = Flags.AimbotColor.value
-        -- ...
+        -- do aimbot stuff
     end
 end)
 
--- also this is how to notify :O
-Window:notify("amongus.hook loaded successfully!", 3)  -- text, duration (sec)
+-- notify example
+Window:notify("amongus.hook loaded successfully!", 3)
