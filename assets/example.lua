@@ -1,4 +1,4 @@
--- load the library first, then call :new() to get window + flags
+-- mainstreamed made the library :O
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/skibidihook/amongus-hook/refs/heads/main/assets/uiLibrary.lua"))()
 
 -- create window and flags
