@@ -111,7 +111,16 @@ local function createClass(tbl)
     return class
 end
 
-local NotifyClass = createClass()
+local NotifyClass         = createClass()
+local WindowClass         = createClass({ index = 0, notifications = {} })
+local TabClass            = createClass()
+local ToggleClass         = createClass()
+local SliderClass         = createClass()
+local DropdownClass       = createClass()
+local ButtonClass         = createClass()
+local KeypickerClass      = createClass()
+local ColourpickerClass   = createClass()
+
 
 function NotifyClass:new(window, text, time)
     local notification = setmetatable({
@@ -261,11 +270,6 @@ function NotifyClass:remove()
         notif:moveTo(notif.goalPos, 0.05)
     end
 end
-
-local WindowClass = createClass({
-    index        = 0,
-    notifications= {},
-})
 
 function WindowClass:new(options)
     assert(type(options) == 'table', ("invalid argument #1 to 'WindowClass.new' (table expected, got %s)"):format(type(options)))
@@ -443,9 +447,9 @@ function WindowClass:new(options)
 end
 
 function WindowClass:addTab(tabName)
-    local TabClass = self._TabClass
     return TabClass:new(self, tabName)
 end
+
 
 function WindowClass:reloadTabs()
     local tabs = self.tabSettings.tabs
@@ -507,8 +511,6 @@ end
 function WindowClass:notify(text, duration)
     return NotifyClass:new(self, text, duration)
 end
-
-local TabClass = createClass()
 
 function TabClass:new(window, tabName)
     window.tabSettings.index = window.tabSettings.index + 1
@@ -603,26 +605,21 @@ function TabClass:onClicked()
 end
 
 function TabClass:addToggle(options, offset)
-    local ToggleClass = self._ToggleClass
     return ToggleClass:new(self, options, offset)
 end
 
 function TabClass:addSlider(options, offset)
-    local SliderClass = self._SliderClass
     return SliderClass:new(self, options, offset)
 end
 
 function TabClass:addDropdown(options, offset)
-    local DropdownClass = self._DropdownClass
     return DropdownClass:new(self, options, offset)
 end
 
 function TabClass:addButton(text, onClick, offset)
-    local ButtonClass = self._ButtonClass
     return ButtonClass:new(self, text, onClick, offset)
 end
 
-local ToggleClass = createClass()
 
 function ToggleClass:new(tab, options, offset)
     offset = math_clamp(math_round(offset), 1, 2)
@@ -720,16 +717,13 @@ function ToggleClass:setValue(val)
 end
 
 function ToggleClass:addKeypicker(options)
-    local KeypickerClass = self._KeypickerClass
     return KeypickerClass:new(self, options)
 end
 
 function ToggleClass:addColourpicker(options)
-    local ColourpickerClass = self._ColourpickerClass
     return ColourpickerClass:new(self, options)
 end
 
-local SliderClass = createClass()
 
 function SliderClass:new(tab, options, offset)
     local slider = setmetatable({
@@ -865,8 +859,6 @@ function SliderClass:setValue(val)
     end
     self.drawings.value.Text = shownValue..self.suffix
 end
-
-local DropdownClass = createClass()
 
 function DropdownClass:new(tab, options, offset)
     local dropdown = setmetatable({
@@ -1023,8 +1015,6 @@ function DropdownClass:setValue(val)
     self.flag.Changed(val)
 end
 
-local ButtonClass = createClass()
-
 function ButtonClass:new(tab, text, onClick, offset)
     local button = setmetatable({
         tab       = tab,
@@ -1082,8 +1072,6 @@ function ButtonClass:onClicked()
         self.onClickFn()
     end
 end
-
-local KeypickerClass = createClass()
 
 function KeypickerClass:new(toggle, options)
     local keypicker = setmetatable({
@@ -1246,8 +1234,6 @@ function KeypickerClass:setValue(isDown, newKey)
     self.flag.Changed(isDown)
     self:update()
 end
-
-local ColourpickerClass = createClass()
 
 function ColourpickerClass:new(toggle, options)
     local colourpicker = setmetatable({
