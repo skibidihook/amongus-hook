@@ -1,0 +1,876 @@
+local UserInputService = game:GetService("UserInputService")
+local Players          = game:GetService("Players")
+local RunService       = game:GetService("RunService")
+local TweenService     = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+
+local Theme = {
+	MainFrame     = Color3.fromRGB(30, 30, 30),
+	TopBar        = Color3.fromRGB(20, 20, 20),
+	Accent        = Color3.fromRGB(0, 180, 109),
+	Outline       = Color3.fromRGB(60, 60, 60),
+	Hover         = Color3.fromRGB(40, 40, 40),
+
+	TextPrimary   = Color3.fromRGB(255, 255, 255),
+	TextDim       = Color3.fromRGB(200, 200, 200),
+}
+
+local function tween(obj, time, props, easingStyle, easingDirection)
+	TweenService
+		:Create(
+			obj,
+			TweenInfo.new(
+				time,
+				easingStyle or Enum.EasingStyle.Quad,
+				easingDirection or Enum.EasingDirection.Out
+			),
+			props
+		)
+		:Play()
+end
+
+local function makeDraggable(frame, dragArea)
+	local dragging = false
+	local dragStart, startPos
+
+	local function update(input)
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+
+	dragArea.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+
+	dragArea.InputChanged:Connect(function(input)
+		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+			update(input)
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+			update(input)
+		end
+	end)
+end
+
+local MonolithLib = {}
+MonolithLib.__index = MonolithLib
+
+function MonolithLib:_RegisterContainer(container)
+	self._OpenContainers = self._OpenContainers or {}
+	container.Visible = false
+	container:GetPropertyChangedSignal("Visible"):Connect(function()
+		if container.Visible then
+			self._OpenContainers[container] = true
+		else
+			self._OpenContainers[container] = nil
+		end
+	end)
+end
+
+function MonolithLib:ToggleUI()
+	if not self.Shadow then
+		warn("Shadow UI element is nil! Ensure it is initialized before calling ToggleUI.")
+		return
+	end
+
+	if self._IsOpen then
+		tween(self.Shadow, 0.4, {Position = self._HiddenPosition}, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		task.wait(0.4)
+		self.Shadow.Visible = false
+
+		if self._OpenContainers then
+			for container, _ in pairs(self._OpenContainers) do
+				container.Visible = false
+			end
+			self._OpenContainers = {}
+		end
+		self._IsOpen = false
+	else
+		self.Shadow.Position = self._HiddenPosition
+		self.Shadow.Visible = true
+		tween(self.Shadow, 0.4, {Position = self._OriginalPosition})
+		self._IsOpen = true
+	end
+end
+
+function MonolithLib:CreateWindow(windowTitle)
+	local ScreenGui = Instance.new("ScreenGui")
+	ScreenGui.Name = "MonolithUI"
+	ScreenGui.ResetOnSpawn = false
+	ScreenGui.Parent = gethui()
+
+	local Shadow = Instance.new("Frame")
+	Shadow.Name = "Shadow"
+	Shadow.Size = UDim2.new(0, 700, 0, 450)
+	Shadow.Position = UDim2.new(0.5, -350, 0.5, -225)
+	Shadow.BackgroundTransparency = 1
+	Shadow.Parent = ScreenGui
+
+	local originalPos = Shadow.Position
+	local hiddenPos   = UDim2.new(0.5, -350, 1.5, -225)
+
+	local UIStrokeShadow = Instance.new("ImageLabel")
+	UIStrokeShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+	UIStrokeShadow.BackgroundTransparency = 1
+	UIStrokeShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+	UIStrokeShadow.Size = UDim2.new(1, 20, 1, 20)
+	UIStrokeShadow.Image = "rbxassetid://1316045217"
+	UIStrokeShadow.ImageColor3 = Color3.new(0, 0, 0)
+	UIStrokeShadow.ImageTransparency = 0.5
+	UIStrokeShadow.ScaleType = Enum.ScaleType.Slice
+	UIStrokeShadow.SliceCenter = Rect.new(10, 10, 118, 118)
+	UIStrokeShadow.Parent = Shadow
+
+	local MainFrame = Instance.new("Frame")
+	MainFrame.Size = UDim2.new(1, 0, 1, 0)
+	MainFrame.BackgroundColor3 = Theme.MainFrame
+	MainFrame.BorderSizePixel = 0
+	MainFrame.Parent = Shadow
+
+	local MainGradient = Instance.new("UIGradient")
+	MainGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(35,35,35)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(25,25,25))
+	})
+
+	MainGradient.Rotation = 90
+	MainGradient.Parent = MainFrame
+
+	local MainCorner = Instance.new("UICorner")
+	MainCorner.CornerRadius = UDim.new(0, 6)
+	MainCorner.Parent = MainFrame
+
+	local OutlineStroke = Instance.new("UIStroke")
+	OutlineStroke.Thickness = 1
+	OutlineStroke.Color = Theme.Outline
+	OutlineStroke.Parent = MainFrame
+
+	local TopBar = Instance.new("Frame")
+	TopBar.Size = UDim2.new(1, 0, 0, 30)
+	TopBar.BackgroundColor3 = Theme.TopBar
+	TopBar.Parent = MainFrame
+
+	local TopBarGradient = Instance.new("UIGradient")
+	TopBarGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(20,20,20)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(35,35,35))
+	})
+	TopBarGradient.Rotation = 0
+	TopBarGradient.Parent = TopBar
+
+	local TopBarCorner = Instance.new("UICorner")
+	TopBarCorner.CornerRadius = UDim.new(0, 6)
+	TopBarCorner.Parent = TopBar
+
+	local TitleLabel = Instance.new("TextLabel")
+	TitleLabel.Text = windowTitle or "Monolith UI"
+	TitleLabel.Font = Enum.Font.GothamSemibold
+	TitleLabel.TextSize = 20
+	TitleLabel.TextColor3 = Theme.TextPrimary
+	TitleLabel.BackgroundTransparency = 1
+	TitleLabel.Size = UDim2.new(1, 0, 1, 0)
+	TitleLabel.Parent = TopBar
+
+	makeDraggable(Shadow, TopBar)
+
+	local data = {
+		ScreenGui = ScreenGui,
+		Shadow = Shadow,
+		MainFrame = MainFrame,
+		TopBar = TopBar,
+
+		_OriginalPosition = originalPos,
+		_HiddenPosition   = hiddenPos,
+		_IsOpen = true,
+	}
+
+	setmetatable(data, { __index = self })
+	return data
+end
+
+function MonolithLib:CreateTabArea()
+	local TabFrame = Instance.new("Frame")
+	TabFrame.Size = UDim2.new(0, 60, 1, -30)
+	TabFrame.Position = UDim2.new(0, 0, 0, 30)
+	TabFrame.BackgroundColor3 = Theme.TopBar
+	TabFrame.BorderSizePixel = 0
+	TabFrame.Parent = self.MainFrame
+
+	local TabGradient = Instance.new("UIGradient")
+	TabGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(25,25,25)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(15,15,15))
+	})
+	TabGradient.Rotation = 90
+	TabGradient.Parent = TabFrame
+
+	local TabFrameCorner = Instance.new("UICorner")
+	TabFrameCorner.CornerRadius = UDim.new(0, 6)
+	TabFrameCorner.Parent = TabFrame
+
+	local TabList = Instance.new("UIListLayout")
+	TabList.FillDirection = Enum.FillDirection.Vertical
+	TabList.Padding = UDim.new(0, 5)
+	TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	TabList.VerticalAlignment = Enum.VerticalAlignment.Top
+	TabList.Parent = TabFrame
+
+	local ContentFrame = Instance.new("Frame")
+	ContentFrame.Size = UDim2.new(1, -70, 1, -40)
+	ContentFrame.Position = UDim2.new(0, 70, 0, 35)
+	ContentFrame.BackgroundTransparency = 1
+	ContentFrame.Parent = self.MainFrame
+
+	self.TabFrame = TabFrame
+	self.ContentFrame = ContentFrame
+
+	return self
+end
+
+function MonolithLib:CreateTab(tabLabel, icon)
+	if not self.TabFrame or not self.ContentFrame then
+		warn("You must call :CreateTabArea() before making tabs!")
+		return
+	end
+
+	local TabButton = Instance.new("TextButton")
+	TabButton.Size = UDim2.new(1, 0, 0, 50)
+	TabButton.Text = icon or "🌐"
+	TabButton.Font = Enum.Font.GothamSemibold
+	TabButton.TextSize = 24
+	TabButton.TextColor3 = Theme.TextPrimary
+	TabButton.BackgroundTransparency = 0.2
+	TabButton.BackgroundColor3 = Theme.MainFrame
+	TabButton.Parent = self.TabFrame
+
+	local TabCorner = Instance.new("UICorner")
+	TabCorner.CornerRadius = UDim.new(0, 4)
+	TabCorner.Parent = TabButton
+
+	local ButtonGradient = Instance.new("UIGradient")
+	ButtonGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(40,40,40)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(25,25,25))
+	})
+	ButtonGradient.Rotation = 90
+	ButtonGradient.Parent = TabButton
+
+	TabButton.MouseEnter:Connect(function()
+		tween(TabButton, 0.15, { BackgroundColor3 = Theme.Hover })
+	end)
+	TabButton.MouseLeave:Connect(function()
+		tween(TabButton, 0.15, { BackgroundColor3 = Theme.MainFrame })
+	end)
+
+	local Page = Instance.new("Frame")
+	Page.Size = UDim2.new(1, 0, 1, 0)
+	Page.BackgroundTransparency = 1
+	Page.Visible = false
+	Page.Parent = self.ContentFrame
+
+	local Layout = Instance.new("UIListLayout")
+	Layout.Padding = UDim.new(0, 5)
+	Layout.FillDirection = Enum.FillDirection.Vertical
+	Layout.VerticalAlignment = Enum.VerticalAlignment.Top
+	Layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+	Layout.Parent = Page
+
+	TabButton.MouseButton1Click:Connect(function()
+		for _, child in ipairs(self.ContentFrame:GetChildren()) do
+			if child:IsA("Frame") and child ~= Page then
+				tween(child, 0.2, { BackgroundTransparency = 1 })
+				task.wait(0.2)
+				child.Visible = false
+			end
+		end
+		Page.Visible = true
+		Page.BackgroundTransparency = 1
+		tween(Page, 0.2, { BackgroundTransparency = 0 })
+	end)
+
+	local tabData = {
+		Page = Page
+	}
+	setmetatable(tabData, {__index = self})
+	return tabData
+end
+
+function MonolithLib:BindToggleKey(keyCode)
+	self.ToggleKey = keyCode
+
+	if self._ToggleConnection then
+		self._ToggleConnection:Disconnect()
+		self._ToggleConnection = nil
+	end
+
+	self._ToggleConnection = UserInputService.InputBegan:Connect(function(input, gp)
+		if gp then return end
+		if input.KeyCode == self.ToggleKey then
+			self:ToggleUI()
+		end
+	end)
+end
+
+function MonolithLib:CreateCheckbox(labelText, default, callback)
+	local CheckboxFrame = Instance.new("Frame")
+	CheckboxFrame.Size = UDim2.new(1, -10, 0, 30)
+	CheckboxFrame.BackgroundTransparency = 1
+	CheckboxFrame.Parent = self.Page
+
+	local Button = Instance.new("TextButton")
+	Button.Size = UDim2.new(0, 20, 0, 20)
+	Button.Position = UDim2.new(0, 5, 0.5, -10)
+	Button.BackgroundColor3 = Theme.MainFrame
+	Button.Text = ""
+	Button.Font = Enum.Font.GothamSemibold
+	Button.TextSize = 16
+	Button.TextColor3 = Theme.TextPrimary
+	Button.Parent = CheckboxFrame
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = Button
+
+	local Outline = Instance.new("UIStroke")
+	Outline.Thickness = 1
+	Outline.Color = Theme.Outline
+	Outline.Parent = Button
+
+	Button.MouseEnter:Connect(function()
+		if not Button:GetAttribute("Checked") then
+			tween(Button, 0.15, { BackgroundColor3 = Theme.Hover })
+		end
+	end)
+	Button.MouseLeave:Connect(function()
+		if not Button:GetAttribute("Checked") then
+			tween(Button, 0.15, { BackgroundColor3 = Theme.MainFrame })
+		end
+	end)
+
+	local Label = Instance.new("TextLabel")
+	Label.Text = labelText
+	Label.Font = Enum.Font.GothamSemibold
+	Label.TextSize = 16
+	Label.TextColor3 = Theme.TextPrimary
+	Label.Position = UDim2.new(0, 30, 0, 0)
+	Label.Size = UDim2.new(1, -35, 1, 0)
+	Label.BackgroundTransparency = 1
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.Parent = CheckboxFrame
+
+	local checked = default or false
+	Button:SetAttribute("Checked", checked)
+	if checked then
+		Button.BackgroundColor3 = Theme.Accent
+	end
+
+	Button.MouseButton1Click:Connect(function()
+		checked = not checked
+		Button:SetAttribute("Checked", checked)
+
+		if checked then
+			tween(Button, 0.15, { BackgroundColor3 = Theme.Accent })
+		else
+			tween(Button, 0.15, { BackgroundColor3 = Theme.MainFrame })
+		end
+
+		if callback then
+			callback(checked)
+		end
+	end)
+end
+
+function MonolithLib:CreateDropdown(labelText, options, default, callback)
+	local DropdownFrame = Instance.new("Frame")
+	DropdownFrame.Size = UDim2.new(1, -10, 0, 60)
+	DropdownFrame.BackgroundTransparency = 1
+	DropdownFrame.Parent = self.Page
+
+	local Label = Instance.new("TextLabel")
+	Label.Text = labelText
+	Label.Font = Enum.Font.GothamSemibold
+	Label.TextSize = 16
+	Label.TextColor3 = Theme.TextPrimary
+	Label.Size = UDim2.new(1, 0, 0, 20)
+	Label.BackgroundTransparency = 1
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.Parent = DropdownFrame
+
+	local DropdownButton = Instance.new("TextButton")
+	DropdownButton.Size = UDim2.new(1, 0, 0, 20)
+	DropdownButton.Position = UDim2.new(0, 0, 0, 25)
+	DropdownButton.BackgroundColor3 = Theme.MainFrame
+	DropdownButton.TextColor3 = Theme.TextPrimary
+	DropdownButton.Font = Enum.Font.GothamSemibold
+	DropdownButton.TextSize = 16
+	DropdownButton.Parent = DropdownFrame
+
+	local dbCorner = Instance.new("UICorner")
+	dbCorner.CornerRadius = UDim.new(0, 4)
+	dbCorner.Parent = DropdownButton
+
+	local dbStroke = Instance.new("UIStroke")
+	dbStroke.Thickness = 1
+	dbStroke.Color = Theme.Outline
+	dbStroke.Parent = DropdownButton
+
+	DropdownButton.MouseEnter:Connect(function()
+		tween(DropdownButton, 0.15, { BackgroundColor3 = Theme.Hover })
+	end)
+	DropdownButton.MouseLeave:Connect(function()
+		tween(DropdownButton, 0.15, { BackgroundColor3 = Theme.MainFrame })
+	end)
+
+	local selection = default or "Select..."
+	DropdownButton.Text = selection
+
+	local DropContainer = Instance.new("Frame")
+	DropContainer.Size = UDim2.new(1, 0, 0, #options * 20)
+	DropContainer.Position = UDim2.new(0, 0, 0, 45)
+	DropContainer.BackgroundColor3 = Theme.MainFrame
+	DropContainer.Parent = DropdownFrame
+
+	self:_RegisterContainer(DropContainer)
+
+	local dcCorner = Instance.new("UICorner")
+	dcCorner.CornerRadius = UDim.new(0, 4)
+	dcCorner.Parent = DropContainer
+
+	local dcStroke = Instance.new("UIStroke")
+	dcStroke.Thickness = 1
+	dcStroke.Color = Theme.Outline
+	dcStroke.Parent = DropContainer
+
+	local listLayout = Instance.new("UIListLayout")
+	listLayout.Parent = DropContainer
+
+	for _, opt in ipairs(options) do
+		local OptionButton = Instance.new("TextButton")
+		OptionButton.Size = UDim2.new(1, 0, 0, 20)
+		OptionButton.BackgroundColor3 = Theme.MainFrame
+		OptionButton.Text = opt
+		OptionButton.TextSize = 16
+		OptionButton.Font = Enum.Font.GothamSemibold
+		OptionButton.TextColor3 = Theme.TextPrimary
+		OptionButton.Parent = DropContainer
+
+		OptionButton.MouseEnter:Connect(function()
+			tween(OptionButton, 0.15, { BackgroundColor3 = Theme.Hover })
+		end)
+		OptionButton.MouseLeave:Connect(function()
+			tween(OptionButton, 0.15, { BackgroundColor3 = Theme.MainFrame })
+		end)
+
+		OptionButton.MouseButton1Click:Connect(function()
+			selection = opt
+			DropdownButton.Text = opt
+			DropContainer.Visible = false
+			if callback then
+				callback(opt)
+			end
+		end)
+	end
+
+	DropContainer.Visible = false
+
+	DropdownButton.MouseButton1Click:Connect(function()
+		DropContainer.Visible = not DropContainer.Visible
+	end)
+end
+
+function MonolithLib:CreateSlider(labelText, minValue, maxValue, defaultValue, callback)
+	local SliderFrame = Instance.new("Frame")
+	SliderFrame.Size = UDim2.new(1, -10, 0, 60)
+	SliderFrame.BackgroundTransparency = 1
+	SliderFrame.Parent = self.Page
+
+	local Label = Instance.new("TextLabel")
+	Label.Text = labelText
+	Label.Font = Enum.Font.GothamSemibold
+	Label.TextSize = 16
+	Label.TextColor3 = Theme.TextPrimary
+	Label.Size = UDim2.new(1, 0, 0, 20)
+	Label.BackgroundTransparency = 1
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.Parent = SliderFrame
+
+	local SliderBack = Instance.new("Frame")
+	SliderBack.Size = UDim2.new(1, 0, 0, 10)
+	SliderBack.Position = UDim2.new(0, 0, 0, 25)
+	SliderBack.BackgroundColor3 = Theme.Hover
+	SliderBack.Parent = SliderFrame
+
+	local sbCorner = Instance.new("UICorner")
+	sbCorner.CornerRadius = UDim.new(0, 4)
+	sbCorner.Parent = SliderBack
+
+	local sbStroke = Instance.new("UIStroke")
+	sbStroke.Thickness = 1
+	sbStroke.Color = Theme.Outline
+	sbStroke.Parent = SliderBack
+
+	local Fill = Instance.new("Frame")
+	Fill.Size = UDim2.new(0, 0, 1, 0)
+	Fill.BackgroundColor3 = Theme.Accent
+	Fill.Parent = SliderBack
+
+	local fCorner = Instance.new("UICorner")
+	fCorner.CornerRadius = UDim.new(0, 4)
+	fCorner.Parent = Fill
+
+	local value = defaultValue or minValue
+	local function setValue(newVal)
+		value = math.clamp(newVal, minValue, maxValue)
+		local ratio = (value - minValue) / (maxValue - minValue)
+		Fill.Size = UDim2.new(ratio, 0, 1, 0)
+		if callback then
+			callback(value)
+		end
+	end
+
+	setValue(value)
+
+	local sliding = false
+
+	SliderBack.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			sliding = true
+			local relativeX = (input.Position.X - SliderBack.AbsolutePosition.X)
+			local percentage = math.clamp(relativeX / SliderBack.AbsoluteSize.X, 0, 1)
+			local newVal = minValue + (maxValue - minValue) * percentage
+			setValue(newVal)
+		end
+	end)
+
+	SliderBack.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			sliding = false
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if sliding and input.UserInputType == Enum.UserInputType.MouseMovement then
+			local relativeX = (input.Position.X - SliderBack.AbsolutePosition.X)
+			local percentage = math.clamp(relativeX / SliderBack.AbsoluteSize.X, 0, 1)
+			local newVal = minValue + (maxValue - minValue) * percentage
+			setValue(newVal)
+		end
+	end)
+end
+
+function MonolithLib:CreateColorPicker(labelText, defaultColor, callback)
+	local ColorPickerFrame = Instance.new("Frame")
+	ColorPickerFrame.Size = UDim2.new(1, -10, 0, 120)
+	ColorPickerFrame.BackgroundTransparency = 1
+	ColorPickerFrame.Parent = self.Page
+
+	local Label = Instance.new("TextLabel")
+	Label.Text = labelText
+	Label.Font = Enum.Font.GothamSemibold
+	Label.TextSize = 16
+	Label.TextColor3 = Theme.TextPrimary
+	Label.Size = UDim2.new(1, 0, 0, 20)
+	Label.BackgroundTransparency = 1
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.Parent = ColorPickerFrame
+
+	local PreviewButton = Instance.new("TextButton")
+	PreviewButton.Size = UDim2.new(0, 40, 0, 20)
+	PreviewButton.Position = UDim2.new(0, 0, 0, 25)
+	PreviewButton.BackgroundColor3 = defaultColor or Color3.fromRGB(255, 255, 255)
+	PreviewButton.Text = ""
+	PreviewButton.Parent = ColorPickerFrame
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = PreviewButton
+
+	local expanded = false
+
+	local WheelContainer = Instance.new("Frame")
+	WheelContainer.Position = UDim2.new(0, 45, 0, 25)
+	WheelContainer.Size = UDim2.new(0, 120, 0, 120)
+	WheelContainer.BackgroundColor3 = Theme.MainFrame
+	WheelContainer.Visible = false
+	WheelContainer.Parent = ColorPickerFrame
+
+	self:_RegisterContainer(WheelContainer)
+
+	local wcCorner = Instance.new("UICorner")
+	wcCorner.CornerRadius = UDim.new(0, 6)
+	wcCorner.Parent = WheelContainer
+
+	local wcStroke = Instance.new("UIStroke")
+	wcStroke.Thickness = 1
+	wcStroke.Color = Theme.Outline
+	wcStroke.Parent = WheelContainer
+
+	local Wheel = Instance.new("ImageLabel")
+	Wheel.Size = UDim2.new(0, 100, 0, 100)
+	Wheel.Position = UDim2.new(0, 10, 0, 10)
+	Wheel.BackgroundTransparency = 1
+	Wheel.Image = "rbxassetid://6020299389"
+	Wheel.Parent = WheelContainer
+
+	local h, s, v = 0, 0, 1
+	if defaultColor then
+		h, s, v = Color3.toHSV(defaultColor)
+	end
+
+	local function updatePreview()
+		local c = Color3.fromHSV(h, s, v)
+		PreviewButton.BackgroundColor3 = c
+		if callback then
+			callback(c)
+		end
+	end
+
+	local ValueSlider = Instance.new("Frame")
+	ValueSlider.Size = UDim2.new(0, 10, 0, 100)
+	ValueSlider.Position = UDim2.new(0, 90, 0, 10)
+	ValueSlider.BackgroundColor3 = Theme.TopBar
+	ValueSlider.Parent = WheelContainer
+
+	local vsCorner = Instance.new("UICorner")
+	vsCorner.CornerRadius = UDim.new(0, 4)
+	vsCorner.Parent = ValueSlider
+
+	local vsStroke = Instance.new("UIStroke")
+	vsStroke.Thickness = 1
+	vsStroke.Color = Theme.Outline
+	vsStroke.Parent = ValueSlider
+
+	local vsGradient = Instance.new("UIGradient")
+	vsGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+		ColorSequenceKeypoint.new(1, Color3.new(0, 0, 0))
+	})
+	vsGradient.Rotation = 90
+	vsGradient.Parent = ValueSlider
+
+	local ValueIndicator = Instance.new("Frame")
+	ValueIndicator.Size = UDim2.new(1, 0, 0, 2)
+	ValueIndicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	ValueIndicator.Position = UDim2.new(0, 0, 1 - v, -1)
+	ValueIndicator.Parent = ValueSlider
+
+	local pickingWheel = false
+	local pickingValue = false
+
+	local function setHSVFromWheel(inputPos)
+		local wheelCenter = Wheel.AbsolutePosition + Wheel.AbsoluteSize/2
+		local dx = inputPos.X - wheelCenter.X
+		local dy = inputPos.Y - wheelCenter.Y
+		local radius = math.sqrt(dx*dx + dy*dy)
+		local maxRadius = Wheel.AbsoluteSize.X/2
+		local angle = math.atan2(dy, dx)
+		local hue = (angle / (2*math.pi)) % 1
+		local sat = math.clamp(radius / maxRadius, 0, 1)
+
+		h = hue
+		s = sat
+		updatePreview()
+	end
+
+	local function setValueFromPos(inputY)
+		local relY = inputY - ValueSlider.AbsolutePosition.Y
+		local percentage = math.clamp(relY / ValueSlider.AbsoluteSize.Y, 0, 1)
+		v = 1 - percentage
+		ValueIndicator.Position = UDim2.new(0, 0, percentage, -1)
+		updatePreview()
+	end
+
+	updatePreview()
+	ValueIndicator.Position = UDim2.new(0, 0, 1 - v, -1)
+
+	Wheel.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			pickingWheel = true
+			setHSVFromWheel(input.Position)
+		end
+	end)
+	Wheel.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			pickingWheel = false
+		end
+	end)
+
+	ValueSlider.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			pickingValue = true
+			setValueFromPos(input.Position.Y)
+		end
+	end)
+	ValueSlider.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			pickingValue = false
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			if pickingWheel then
+				setHSVFromWheel(input.Position)
+			elseif pickingValue then
+				setValueFromPos(input.Position.Y)
+			end
+		end
+	end)
+
+	PreviewButton.MouseButton1Click:Connect(function()
+		expanded = not expanded
+		WheelContainer.Visible = expanded
+	end)
+end
+
+function MonolithLib:CreateTextBox(labelText, defaultText, callback)
+	local TextBoxFrame = Instance.new("Frame")
+	TextBoxFrame.Size = UDim2.new(1, -10, 0, 60)
+	TextBoxFrame.BackgroundTransparency = 1
+	TextBoxFrame.Parent = self.Page
+
+	local Label = Instance.new("TextLabel")
+	Label.Text = labelText
+	Label.Font = Enum.Font.GothamSemibold
+	Label.TextSize = 16
+	Label.TextColor3 = Theme.TextPrimary
+	Label.Size = UDim2.new(1, 0, 0, 20)
+	Label.BackgroundTransparency = 1
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.Parent = TextBoxFrame
+
+	local TextBox = Instance.new("TextBox")
+	TextBox.Size = UDim2.new(1, 0, 0, 20)
+	TextBox.Position = UDim2.new(0, 0, 0, 25)
+	TextBox.BackgroundColor3 = Theme.MainFrame
+	TextBox.TextColor3 = Theme.TextPrimary
+	TextBox.Font = Enum.Font.GothamSemibold
+	TextBox.TextSize = 16
+	TextBox.ClearTextOnFocus = false
+	TextBox.Text = defaultText or ""
+	TextBox.Parent = TextBoxFrame
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = TextBox
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 1
+	stroke.Color = Theme.Outline
+	stroke.Parent = TextBox
+
+	TextBox.MouseEnter:Connect(function()
+		tween(TextBox, 0.15, { BackgroundColor3 = Theme.Hover })
+	end)
+	TextBox.MouseLeave:Connect(function()
+		tween(TextBox, 0.15, { BackgroundColor3 = Theme.MainFrame })
+	end)
+
+	TextBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed and callback then
+			callback(TextBox.Text)
+		end
+	end)
+end
+
+function MonolithLib:CreateKeybind(labelText, defaultKey, callback)
+	local KeybindFrame = Instance.new("Frame")
+	KeybindFrame.Size = UDim2.new(1, -10, 0, 30)
+	KeybindFrame.BackgroundTransparency = 1
+	KeybindFrame.Parent = self.Page
+
+	local Label = Instance.new("TextLabel")
+	Label.Text = labelText
+	Label.Font = Enum.Font.GothamSemibold
+	Label.TextSize = 16
+	Label.TextColor3 = Theme.TextPrimary
+	Label.Size = UDim2.new(1, -60, 1, 0)
+	Label.BackgroundTransparency = 1
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.Parent = KeybindFrame
+
+	local KeyButton = Instance.new("TextButton")
+	KeyButton.Size = UDim2.new(0, 60, 1, 0)
+	KeyButton.Position = UDim2.new(1, -60, 0, 0)
+	KeyButton.BackgroundColor3 = Theme.MainFrame
+	KeyButton.TextColor3 = Theme.TextPrimary
+	KeyButton.Font = Enum.Font.GothamSemibold
+	KeyButton.TextSize = 16
+	KeyButton.Text = defaultKey and defaultKey.Name or "None"
+	KeyButton.Parent = KeybindFrame
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = KeyButton
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 1
+	stroke.Color = Theme.Outline
+	stroke.Parent = KeyButton
+
+	local binding = false
+	local chosenKey = defaultKey or Enum.KeyCode.None
+
+	KeyButton.MouseEnter:Connect(function()
+		tween(KeyButton, 0.15, { BackgroundColor3 = Theme.Hover })
+	end)
+	KeyButton.MouseLeave:Connect(function()
+		if not binding then
+			tween(KeyButton, 0.15, { BackgroundColor3 = Theme.MainFrame })
+		end
+	end)
+
+	KeyButton.MouseButton1Click:Connect(function()
+		if not binding then
+			binding = true
+			KeyButton.Text = "..."
+			tween(KeyButton, 0.15, { BackgroundColor3 = Theme.Accent })
+		end
+	end)
+
+	UserInputService.InputBegan:Connect(function(input, gp)
+		if gp then return end
+		if binding then
+			if input.UserInputType == Enum.UserInputType.Keyboard then
+				chosenKey = input.KeyCode
+				KeyButton.Text = chosenKey.Name
+			elseif input.UserInputType == Enum.UserInputType.MouseButton1
+				or input.UserInputType == Enum.UserInputType.MouseButton2
+				or input.UserInputType == Enum.UserInputType.MouseButton3 then
+				chosenKey = input.UserInputType
+				KeyButton.Text = chosenKey.Name
+			else
+				KeyButton.Text = "None"
+				chosenKey = Enum.KeyCode.None
+			end
+
+			binding = false
+			tween(KeyButton, 0.15, { BackgroundColor3 = Theme.MainFrame })
+
+			if callback then
+				callback(chosenKey)
+			end
+		end
+	end)
+end
+
+return MonolithLib
