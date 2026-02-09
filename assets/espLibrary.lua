@@ -29,7 +29,7 @@ local GlobalFont = _G.GLOBAL_FONT or 1
 local GlobalSize = _G.GLOBAL_SIZE or 13
 local BaseZIndex = 1
 
-local FlagSize = math.clamp(GlobalSize - 4, 9, 11)
+local FlagSize = math.clamp(GlobalSize - 6, 8, 10)
 local FlagLineHeight = FlagSize + 1
 
 local EspLibrary = {}
@@ -55,6 +55,31 @@ do
     end
     PlayerESP.OnDrawingAdded = function(Callback)
         table.insert(PlayerESP.DrawingAddedConnections, Callback)
+    end
+
+    local function Get2DBoxFrom3DBounds(CF, Size)
+        local SX, SY, SZ = Size.X, Size.Y, Size.Z
+        local HX, HY, HZ = SX * 0.5, SY * 0.5, SZ * 0.5
+
+        local MinX, MinY = math.huge, math.huge
+        local MaxX, MaxY = -math.huge, -math.huge
+        local MinZ = math.huge
+
+        for IX = -1, 1, 2 do
+            for IY = -1, 1, 2 do
+                for IZ = -1, 1, 2 do
+                    local CornerWorld = (CF * CFrame.new(HX * IX, HY * IY, HZ * IZ)).Position
+                    local V2, _, Z = WorldToViewPoint(CornerWorld)
+                    if Z < MinZ then MinZ = Z end
+                    if V2.X < MinX then MinX = V2.X end
+                    if V2.Y < MinY then MinY = V2.Y end
+                    if V2.X > MaxX then MaxX = V2.X end
+                    if V2.Y > MaxY then MaxY = V2.Y end
+                end
+            end
+        end
+
+        return Vector2.new(MinX, MinY), Vector2.new(MaxX - MinX, MaxY - MinY), MinZ
     end
 
     PlayerESP.New = function(Player)
@@ -229,8 +254,8 @@ do
 
             FlagTexts = FlagTexts,
         }
-        Drawings.All = AllDrawings
 
+        Drawings.All = AllDrawings
         self.Drawings = Drawings
         self.AllDrawings = AllDrawings
     end
@@ -274,6 +299,7 @@ do
 
     function PlayerESP:SetupHumanoid(Humanoid, FirstTime)
         self:HumanoidHealthChanged()
+
         table.insert(self.Connections, Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
             self:HumanoidHealthChanged()
         end))
@@ -290,49 +316,28 @@ do
         end
     end
 
-    local function Get2DBoxFrom3DBounds(CF, Size)
-        local SX, SY, SZ = Size.X, Size.Y, Size.Z
-        local HX, HY, HZ = SX * 0.5, SY * 0.5, SZ * 0.5
-
-        local MinX, MinY = math.huge, math.huge
-        local MaxX, MaxY = -math.huge, -math.huge
-        local AnyOnScreen = false
-
-        for IX = -1, 1, 2 do
-            for IY = -1, 1, 2 do
-                for IZ = -1, 1, 2 do
-                    local CornerWorld = (CF * CFrame.new(HX * IX, HY * IY, HZ * IZ)).Position
-                    local V2, OnScreen = WorldToViewPoint(CornerWorld)
-                    AnyOnScreen = AnyOnScreen or OnScreen
-                    if V2.X < MinX then MinX = V2.X end
-                    if V2.Y < MinY then MinY = V2.Y end
-                    if V2.X > MaxX then MaxX = V2.X end
-                    if V2.Y > MaxY then MaxY = V2.Y end
-                end
-            end
-        end
-
-        local Pos = Vector2.new(MinX, MinY)
-        local BoxSize = Vector2.new(MaxX - MinX, MaxY - MinY)
-
-        return Pos, BoxSize, AnyOnScreen
-    end
-
     function PlayerESP:Loop(Settings, DistanceOverride)
         local Current = self.Current
-        local Humanoid = Current.Humanoid
-        local RootPart = Current.RootPart
+        local Humanoid = Current and Current.Humanoid
+        local RootPart = Current and Current.RootPart
+
         if not Humanoid or not RootPart then
             return self:HideDrawings()
         end
 
-        local BoxCF, BoxSize3 = GetBoundingBox(Humanoid, true)
-        local BoxPos2D, BoxSize2D, OnScreen = Get2DBoxFrom3DBounds(BoxCF, BoxSize3)
-
-        self.Current.Visible = OnScreen
-        if not OnScreen then
+        local _, RootOnScreen, RootZ = WorldToViewPoint(RootPart.Position)
+        if not RootOnScreen or RootZ <= 0 then
+            self.Current.Visible = false
             return self:HideDrawings()
         end
+
+        local BoxCF, BoxSize3 = GetBoundingBox(Humanoid, true)
+        local BoxPos2D, BoxSize2D, MinZ = Get2DBoxFrom3DBounds(BoxCF, BoxSize3)
+        if MinZ <= 0 then
+            return self:HideDrawings()
+        end
+
+        self.Current.Visible = true
         self.Hidden = false
 
         local Center2D = BoxPos2D + (BoxSize2D * 0.5)
@@ -350,7 +355,7 @@ do
         local PrimaryPart = self.Current.Character.PrimaryPart
         if PrimaryPart then
             self.Current.RootPart = PrimaryPart
-            if self.Current.Humanoid and self.Current.Health > 0 then
+            if self.Current.Humanoid and self.Current.Health and self.Current.Health > 0 then
                 self.Current.Active = true
             end
         end
@@ -498,10 +503,13 @@ do
         local Points = {
             {Vector2.new(Left, Top), Vector2.new(Left + HorizontalLen, Top)},
             {Vector2.new(Left, Top), Vector2.new(Left, Top + VerticalLen)},
+
             {Vector2.new(Right - HorizontalLen, Top), Vector2.new(Right, Top)},
             {Vector2.new(Right, Top), Vector2.new(Right, Top + VerticalLen)},
+
             {Vector2.new(Left, Bottom), Vector2.new(Left + HorizontalLen, Bottom)},
             {Vector2.new(Left, Bottom - VerticalLen), Vector2.new(Left, Bottom)},
+
             {Vector2.new(Right - HorizontalLen, Bottom), Vector2.new(Right, Bottom)},
             {Vector2.new(Right, Bottom - VerticalLen), Vector2.new(Right, Bottom)},
         }
@@ -604,7 +612,7 @@ do
 
         local Right = BoxPos2D.X + BoxSize2D.X
         local Top = BoxPos2D.Y
-        local X = Right + 3
+        local X = Right + 2
 
         local Mode = string.lower(FlagsSettings.Mode or "normal")
         if Mode == "always" then
@@ -614,6 +622,7 @@ do
                 local TextObj = FlagTexts[i]
                 local State = not not Item.State
                 TextObj.Visible = true
+                TextObj.Size = FlagSize
                 TextObj.Text = tostring(Item.Text or "")
                 TextObj.Position = Vector2.new(X, Top + (FlagLineHeight * (i - 1)))
                 TextObj.Color = (State and (Item.ColorTrue or Color3.new(0, 1, 0))) or (Item.ColorFalse or Color3.new(1, 0, 0))
@@ -628,6 +637,7 @@ do
             if Item.State then
                 local TextObj = FlagTexts[Index + 1]
                 TextObj.Visible = true
+                TextObj.Size = FlagSize
                 TextObj.Text = tostring(Item.Text or "")
                 TextObj.Position = Vector2.new(X, Top + (FlagLineHeight * Index))
                 TextObj.Color = Item.ColorTrue or Color3.new(0, 1, 0)
