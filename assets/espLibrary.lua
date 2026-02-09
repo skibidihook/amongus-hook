@@ -554,7 +554,7 @@ do
         HealthBar.Size = HealthSize
     end
 
-    function PlayerESP:RenderFlags(BoxPos2D, BoxSize2D, FlagsSettings)
+    function PlayerESP:RenderFlags(Center2D, Offset, FlagsSettings)
         local FlagTexts = self.Drawings.FlagTexts
         for i = 1, #FlagTexts do
             FlagTexts[i].Visible = false
@@ -562,7 +562,7 @@ do
         if not FlagsSettings or not FlagsSettings.Enabled then
             return
         end
-
+    
         local Items = {}
         if type(FlagsSettings.Builder) == "function" then
             local Ok, Result = pcall(function() return FlagsSettings.Builder(self) end)
@@ -570,13 +570,16 @@ do
                 Items = Result
             end
         end
-
+    
         local Cfg = EspLibrary.Config
         local LineHeight = Cfg.FlagSize + Cfg.FlagLinePadding
-
-        local X = BoxPos2D.X + BoxSize2D.X + Cfg.FlagXPadding
-        local Y = BoxPos2D.Y
-
+    
+        local RightEdgeX = Center2D.X + Offset.X
+        local TopY = Center2D.Y - Offset.Y
+    
+        local X = RightEdgeX + Cfg.FlagXPadding
+        local Y = TopY
+    
         local Mode = string.lower(FlagsSettings.Mode or "normal")
         if Mode == "always" then
             local Count = math.min(#Items, #FlagTexts)
@@ -584,7 +587,7 @@ do
                 local Item = Items[i]
                 local TextObj = FlagTexts[i]
                 local State = not not Item.State
-
+    
                 TextObj.Visible = true
                 TextObj.Font = Cfg.Font
                 TextObj.Size = Cfg.FlagSize
@@ -597,14 +600,14 @@ do
             end
             return
         end
-
+    
         local Index = 0
         for i = 1, #Items do
             if Index >= #FlagTexts then break end
             local Item = Items[i]
             if Item.State then
                 local TextObj = FlagTexts[Index + 1]
-
+    
                 TextObj.Visible = true
                 TextObj.Font = Cfg.Font
                 TextObj.Size = Cfg.FlagSize
@@ -614,7 +617,7 @@ do
                 TextObj.Text = tostring(Item.Text or "")
                 TextObj.Position = Vector2.new(X, Y + (LineHeight * Index))
                 TextObj.Color = Item.ColorTrue or Color3.new(0, 1, 0)
-
+    
                 Index = Index + 1
             end
         end
@@ -625,47 +628,47 @@ do
         if not Current then
             return self:HideDrawings()
         end
-
+    
         local Character = Current.Character
         local Humanoid = Current.Humanoid
         local RootPart = Current.RootPart
-
+    
         if not Character or not Humanoid or not RootPart then
             return self:HideDrawings()
         end
-
+    
         local BoxCF, BoxSize3 = GetBoundingBoxSafe(Character, Humanoid)
         if not BoxCF or not BoxSize3 then
             return self:HideDrawings()
         end
-
+    
         local MinX, MinY, MaxX, MaxY, AnyInFront, MinZ = Get2DBoxFrom3DBounds(BoxCF, BoxSize3)
         if not AnyInFront or MinZ <= 0 then
             Current.Visible = false
             return self:HideDrawings()
         end
-
+    
         local W = MaxX - MinX
         local H = MaxY - MinY
         if W <= 1 or H <= 1 or W ~= W or H ~= H then
             return self:HideDrawings()
         end
-
+    
         Current.Visible = true
         self.Hidden = false
-
+    
         local BoxPos2D = Vector2.new(MinX, MinY)
         local BoxSize2D = Vector2.new(W, H)
-
+    
         local Center2D = BoxPos2D + (BoxSize2D * 0.5)
         local Offset = BoxSize2D * 0.5
-
+    
         self:RenderBox(BoxPos2D, BoxSize2D, Settings.Box)
         self:RenderName(Center2D, Offset, Settings.Name)
         self:RenderWeapon(Center2D, Offset, Settings.Weapon)
         self:RenderDistance(Center2D, Offset, Settings.Distance, DistanceOverride)
         self:RenderHealthbar(Center2D, Offset, Settings.Healthbar)
-        self:RenderFlags(BoxPos2D, BoxSize2D, Settings.Flags)
+        self:RenderFlags(Center2D, Offset, Settings.Flags)
     end
 
     EspLibrary.PlayerESP = PlayerESP
