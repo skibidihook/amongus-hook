@@ -36,8 +36,10 @@ do
         PlayerCache = {},
         DrawingCache = {},
         AllDrawingCache = {},
+
         ChildAddedConnections = {},
         ChildRemovedConnections = {},
+
         DrawingAddedConnections = {},
     }
     PlayerESP.__index = PlayerESP
@@ -65,7 +67,9 @@ do
         local Cache = PlayerESP.DrawingCache[1]
         if Cache then
             table.remove(PlayerESP.DrawingCache, 1)
+
             Cache.Name.Text = Player.DisplayName
+
             Self.AllDrawings = Cache.All
             Self.Drawings = Cache
         else
@@ -88,6 +92,7 @@ do
         end
 
         PlayerESP.PlayerCache[Player] = Self
+
         return Self
     end
 
@@ -96,10 +101,13 @@ do
         if type(Cache) ~= "table" or type(Cache.Drawings) ~= "table" or type(Cache.Connections) ~= "table" then
             return
         end
+
         PlayerESP.PlayerCache[Player] = nil
+
         for i = 1, #Cache.Connections do
             Cache.Connections[i]:Disconnect()
         end
+
         table.insert(PlayerESP.DrawingCache, Cache.Drawings)
     end
 
@@ -124,6 +132,27 @@ do
             table.insert(Corners.Lines, Line)
         end
 
+        local FullBox = {
+            Lines = {},
+            Outlines = {},
+        }
+        for i = 1, 4 do
+            local Outline = CreateDrawing("Line", {
+                Visible = false,
+                Thickness = 2,
+                Color = Color3.new(0, 0, 0),
+                ZIndex = BaseZIndex,
+            }, AllDrawings)
+            local Line = CreateDrawing("Line", {
+                Visible = false,
+                Thickness = 1,
+                Color = Color3.new(1, 1, 1),
+                ZIndex = BaseZIndex + 1,
+            }, AllDrawings)
+            table.insert(FullBox.Outlines, Outline)
+            table.insert(FullBox.Lines, Line)
+        end
+
         local FlagTexts = {}
         for i = 1, 4 do
             local FlagText = CreateDrawing("Text", {
@@ -131,7 +160,7 @@ do
                 Center = false,
                 Outline = true,
                 OutlineColor = Color3.new(0, 0, 0),
-                Color = Color3.new(1, 0, 0),
+                Color = Color3.new(1, 1, 1),
                 Transparency = 1,
                 Size = GlobalSize,
                 Text = "",
@@ -143,6 +172,8 @@ do
 
         local Drawings = {
             Corners = Corners,
+            FullBox = FullBox,
+
             Name = CreateDrawing("Text", {
                 Visible = false,
                 Center = true,
@@ -191,6 +222,7 @@ do
                 Font = GlobalFont,
                 ZIndex = BaseZIndex + 1,
             }, AllDrawings),
+
             FlagTexts = FlagTexts,
         }
         Drawings.All = AllDrawings
@@ -254,34 +286,64 @@ do
         end
     end
 
+    local function Get2DBoxFrom3DBounds(CF, Size)
+        local SX, SY, SZ = Size.X, Size.Y, Size.Z
+        local HX, HY, HZ = SX * 0.5, SY * 0.5, SZ * 0.5
+
+        local MinX, MinY = math.huge, math.huge
+        local MaxX, MaxY = -math.huge, -math.huge
+        local AnyOnScreen = false
+        local MinZ = math.huge
+
+        for IX = -1, 1, 2 do
+            for IY = -1, 1, 2 do
+                for IZ = -1, 1, 2 do
+                    local CornerWorld = (CF * CFrame.new(HX * IX, HY * IY, HZ * IZ)).Position
+                    local V2, OnScreen, Z = WorldToViewPoint(CornerWorld)
+                    AnyOnScreen = AnyOnScreen or OnScreen
+                    if Z < MinZ then
+                        MinZ = Z
+                    end
+                    if V2.X < MinX then MinX = V2.X end
+                    if V2.Y < MinY then MinY = V2.Y end
+                    if V2.X > MaxX then MaxX = V2.X end
+                    if V2.Y > MaxY then MaxY = V2.Y end
+                end
+            end
+        end
+
+        local Pos = Vector2.new(MinX, MinY)
+        local BoxSize = Vector2.new(MaxX - MinX, MaxY - MinY)
+
+        return Pos, BoxSize, AnyOnScreen, MinZ
+    end
+
     function PlayerESP:Loop(Settings, DistanceOverride)
         local Current = self.Current
-        local _, Size = GetBoundingBox(Current.Humanoid, true)
-        local Goal = Current.RebuiltPos or Current.RootPart.Position
+        local Humanoid = Current.Humanoid
+        local RootPart = Current.RootPart
+        if not Humanoid or not RootPart then
+            return self:HideDrawings()
+        end
 
-        local Vector2Pos, OnScreen = WorldToViewPoint(Goal)
+        local BoxCF, BoxSize3 = GetBoundingBox(Humanoid, true)
+        local BoxPos2D, BoxSize2D, OnScreen = Get2DBoxFrom3DBounds(BoxCF, BoxSize3)
+
         self.Current.Visible = OnScreen
         if not OnScreen then
             return self:HideDrawings()
         end
         self.Hidden = false
 
-        local CF = CFrame.new(Goal, CurrentCamera.CFrame.Position)
-        local X, Y = -Size.X / 2, Size.Y / 2
-        local TopRight = WorldToViewPoint((CF * CFrame.new(X, Y, 0)).Position)
-        local BottomRight = WorldToViewPoint((CF * CFrame.new(X, -Y, 0)).Position)
+        local Center2D = BoxPos2D + (BoxSize2D * 0.5)
+        local Offset = BoxSize2D * 0.5
 
-        local Offset = Vector2.new(
-            math.max(TopRight.X - Vector2Pos.X, BottomRight.X - Vector2Pos.X),
-            math.max((Vector2Pos.Y - TopRight.Y), (BottomRight.Y - Vector2Pos.Y))
-        )
-
-        self:RenderCornerBox(Vector2Pos, Offset, Settings.Box)
-        self:RenderName(Vector2Pos, Offset, Settings.Name)
-        self:RenderDistance(Vector2Pos, Offset, Settings.Distance, DistanceOverride)
-        self:RenderHealthbar(Vector2Pos, Offset, Settings.Healthbar)
-        self:RenderWeapon(Vector2Pos, Offset, Settings.Weapon)
-        self:RenderFlags(Vector2Pos, Offset, Settings.Flags)
+        self:RenderBox(Center2D, BoxPos2D, BoxSize2D, Settings.Box)
+        self:RenderName(Center2D, Offset, Settings.Name)
+        self:RenderWeapon(Center2D, Offset, Settings.Weapon)
+        self:RenderDistance(Center2D, Offset, Settings.Distance, DistanceOverride)
+        self:RenderHealthbar(Center2D, Offset, Settings.Healthbar)
+        self:RenderFlags(BoxPos2D, BoxSize2D, Settings.Flags)
     end
 
     function PlayerESP:PrimaryPartAdded()
@@ -299,6 +361,7 @@ do
             self.Current.Humanoid = Child
             self:SetupHumanoid(Child)
         end
+
         for i = 1, #self.ChildAddedConnections do
             self.ChildAddedConnections[i](self, Child)
         end
@@ -313,6 +376,7 @@ do
             self.Current.RootPart = nil
             self:SetNonActive()
         end
+
         for i = 1, #self.ChildRemovedConnections do
             self.ChildRemovedConnections[i](self, Child)
         end
@@ -322,8 +386,10 @@ do
         self.Current = {
             Character = Character,
             Active = false,
+
             Humanoid = Character:FindFirstChild("Humanoid"),
             RootPart = Character:FindFirstChild("HumanoidRootPart"),
+
             Health = nil,
             Weapon = nil,
             Connection = nil,
@@ -352,30 +418,82 @@ do
         end
     end
 
-    function PlayerESP:RenderCornerBox(Vector2Pos, Offset, Enabled)
-        local Drawings = self.Drawings
-        local Corners = Drawings.Corners
-        local Lines = Corners.Lines
-        local Outlines = Corners.Outlines
+    function PlayerESP:RenderBox(Center2D, BoxPos2D, BoxSize2D, BoxSettings)
+        local Corners = self.Drawings.Corners
+        local FullBox = self.Drawings.FullBox
+
+        local CornersLines = Corners.Lines
+        local CornersOutlines = Corners.Outlines
+
+        local FullLines = FullBox.Lines
+        local FullOutlines = FullBox.Outlines
+
+        local Enabled = false
+        local Mode = "corner"
+
+        if type(BoxSettings) == "table" then
+            Enabled = not not BoxSettings.Enabled
+            Mode = string.lower(BoxSettings.Mode or "corner")
+        else
+            Enabled = not not BoxSettings
+        end
 
         if not Enabled then
             for i = 1, 8 do
-                Lines[i].Visible = false
-                Outlines[i].Visible = false
+                CornersLines[i].Visible = false
+                CornersOutlines[i].Visible = false
+            end
+            for i = 1, 4 do
+                FullLines[i].Visible = false
+                FullOutlines[i].Visible = false
             end
             return
         end
 
-        local Position = Vector2Pos - Offset
-        local Size = Offset * 2
+        if Mode == "full" then
+            for i = 1, 8 do
+                CornersLines[i].Visible = false
+                CornersOutlines[i].Visible = false
+            end
 
-        local Left = Position.X
-        local Top = Position.Y
-        local Right = Position.X + Size.X
-        local Bottom = Position.Y + Size.Y
+            local X1 = BoxPos2D.X
+            local Y1 = BoxPos2D.Y
+            local X2 = BoxPos2D.X + BoxSize2D.X
+            local Y2 = BoxPos2D.Y + BoxSize2D.Y
 
-        local HorizontalLen = math.floor(Size.X * 0.25)
-        local VerticalLen = math.floor(Size.Y * 0.25)
+            local P = {
+                {Vector2.new(X1, Y1), Vector2.new(X2, Y1)},
+                {Vector2.new(X2, Y1), Vector2.new(X2, Y2)},
+                {Vector2.new(X2, Y2), Vector2.new(X1, Y2)},
+                {Vector2.new(X1, Y2), Vector2.new(X1, Y1)},
+            }
+
+            for i = 1, 4 do
+                local O = FullOutlines[i]
+                local L = FullLines[i]
+                O.Visible = true
+                L.Visible = true
+                O.From = P[i][1]
+                O.To = P[i][2]
+                L.From = P[i][1]
+                L.To = P[i][2]
+            end
+
+            return
+        end
+
+        for i = 1, 4 do
+            FullLines[i].Visible = false
+            FullOutlines[i].Visible = false
+        end
+
+        local Left = BoxPos2D.X
+        local Top = BoxPos2D.Y
+        local Right = BoxPos2D.X + BoxSize2D.X
+        local Bottom = BoxPos2D.Y + BoxSize2D.Y
+
+        local HorizontalLen = math.floor(BoxSize2D.X * 0.25)
+        local VerticalLen = math.floor(BoxSize2D.Y * 0.25)
 
         local Points = {
             {Vector2.new(Left, Top), Vector2.new(Left + HorizontalLen, Top)},
@@ -391,12 +509,16 @@ do
         for i = 1, 8 do
             local P1 = Points[i][1]
             local P2 = Points[i][2]
-            local Outline = Outlines[i]
-            local Line = Lines[i]
+
+            local Outline = CornersOutlines[i]
+            local Line = CornersLines[i]
+
             Outline.Visible = true
             Line.Visible = true
+
             Outline.From = P1
             Outline.To = P2
+
             Line.From = P1
             Line.To = P2
         end
@@ -412,39 +534,6 @@ do
         Name.Position = Vector2Pos - Vector2.new(0, Offset.Y + Name.Size)
     end
 
-    function PlayerESP:RenderDistance(Vector2Pos, Offset, Enabled, DistanceOverride)
-        local Distance = self.Drawings.Distance
-        if not Enabled then
-            Distance.Visible = false
-            return
-        end
-        local Magnitude = math.round(DistanceOverride or (CurrentCamera.CFrame.Position - self.Current.RootPart.Position).Magnitude)
-        Distance.Visible = true
-        Distance.Position = Vector2Pos + Vector2.new(0, Offset.Y)
-        Distance.Text = `[{Magnitude}]`
-    end
-
-    function PlayerESP:RenderHealthbar(Vector2Pos, Offset, Enabled)
-        if not Enabled then
-            self.Drawings.HealthBar.Visible = false
-            self.Drawings.HealthBackground.Visible = false
-            return
-        end
-        local HealthBar = self.Drawings.HealthBar
-        local HealthBackground = self.Drawings.HealthBackground
-        HealthBar.Visible = true
-        HealthBackground.Visible = true
-        local BasePosition = Vector2Pos - Offset - Vector2.new(5, 0)
-        local BaseSize = Vector2.new(3, Offset.Y * 2)
-        local HealthLength = (BaseSize.Y - 2) * self.Current.HealthPercentage
-        local HealthPosition = BasePosition + Vector2.new(1, 1 + (BaseSize.Y - 2 - HealthLength))
-        local HealthSize = Vector2.new(1, HealthLength)
-        HealthBackground.Position = BasePosition
-        HealthBackground.Size = BaseSize
-        HealthBar.Position = HealthPosition
-        HealthBar.Size = HealthSize
-    end
-
     function PlayerESP:RenderWeapon(Vector2Pos, Offset, Enabled)
         local WeaponText = self.Drawings.Weapon
         if not Enabled then
@@ -456,7 +545,47 @@ do
         WeaponText.Text = self.Current.Weapon and string.lower(self.Current.Weapon.Name) or "none"
     end
 
-    function PlayerESP:RenderFlags(Vector2Pos, Offset, FlagsSettings)
+    function PlayerESP:RenderDistance(Vector2Pos, Offset, Enabled, DistanceOverride)
+        local Distance = self.Drawings.Distance
+        if not Enabled then
+            Distance.Visible = false
+            return
+        end
+        local YOffset = self.Drawings.Weapon.Visible and (GlobalSize + 1) or 0
+        local Magnitude = math.round(DistanceOverride or (CurrentCamera.CFrame.Position - self.Current.RootPart.Position).Magnitude)
+        Distance.Visible = true
+        Distance.Position = Vector2Pos + Vector2.new(0, Offset.Y + YOffset)
+        Distance.Text = `[{Magnitude}]`
+    end
+
+    function PlayerESP:RenderHealthbar(Vector2Pos, Offset, Enabled)
+        if not Enabled then
+            self.Drawings.HealthBar.Visible = false
+            self.Drawings.HealthBackground.Visible = false
+            return
+        end
+
+        local HealthBar = self.Drawings.HealthBar
+        local HealthBackground = self.Drawings.HealthBackground
+
+        HealthBar.Visible = true
+        HealthBackground.Visible = true
+
+        local BasePosition = Vector2Pos - Offset - Vector2.new(5, 0)
+        local BaseSize = Vector2.new(3, Offset.Y * 2)
+
+        local HealthLength = (BaseSize.Y - 2) * self.Current.HealthPercentage
+        local HealthPosition = BasePosition + Vector2.new(1, 1 + (BaseSize.Y - 2 - HealthLength))
+        local HealthSize = Vector2.new(1, HealthLength)
+
+        HealthBackground.Position = BasePosition
+        HealthBackground.Size = BaseSize
+
+        HealthBar.Position = HealthPosition
+        HealthBar.Size = HealthSize
+    end
+
+    function PlayerESP:RenderFlags(BoxPos2D, BoxSize2D, FlagsSettings)
         local FlagTexts = self.Drawings.FlagTexts
         for i = 1, #FlagTexts do
             FlagTexts[i].Visible = false
@@ -473,11 +602,11 @@ do
             end
         end
 
-        local Position = Vector2Pos - Offset
-        local Size = Offset * 2
-        local Right = Position.X + Size.X
-        local Top = Position.Y
-        local Spacing = math.max(GlobalSize, 12) + 6
+        local Right = BoxPos2D.X + BoxSize2D.X
+        local Top = BoxPos2D.Y
+
+        local LineHeight = GlobalSize + 1
+        local X = Right + 4
 
         local Mode = string.lower(FlagsSettings.Mode or "normal")
         if Mode == "always" then
@@ -485,12 +614,10 @@ do
                 local Item = Items[i]
                 local TextObj = FlagTexts[i]
                 local State = not not Item.State
-                local TrueColor = Item.ColorTrue or Color3.new(0, 1, 0)
-                local FalseColor = Item.ColorFalse or Color3.new(1, 0, 0)
                 TextObj.Visible = true
                 TextObj.Text = tostring(Item.Text or "")
-                TextObj.Position = Vector2.new(Right + 4 + Spacing * (i - 1), Top)
-                TextObj.Color = State and TrueColor or FalseColor
+                TextObj.Position = Vector2.new(X, Top + (LineHeight * (i - 1)))
+                TextObj.Color = (State and (Item.ColorTrue or Color3.new(0, 1, 0))) or (Item.ColorFalse or Color3.new(1, 0, 0))
             end
             return
         end
@@ -503,7 +630,7 @@ do
                 local TextObj = FlagTexts[Index + 1]
                 TextObj.Visible = true
                 TextObj.Text = tostring(Item.Text or "")
-                TextObj.Position = Vector2.new(Right + 4 + Spacing * Index, Top)
+                TextObj.Position = Vector2.new(X, Top + (LineHeight * Index))
                 TextObj.Color = Item.ColorTrue or Color3.new(0, 1, 0)
                 Index = Index + 1
             end
