@@ -1,6 +1,4 @@
 local CloneRef = cloneref or function(...) return ... end
-local CompareInstances = compareinstances or rawequal
-
 local RunService = CloneRef(game:GetService("RunService"))
 local CurrentCamera = CloneRef(workspace.CurrentCamera)
 
@@ -29,7 +27,6 @@ end
 
 local GlobalFont = _G.GLOBAL_FONT or 1
 local GlobalSize = _G.GLOBAL_SIZE or 13
-
 local BaseZIndex = 1
 
 local EspLibrary = {}
@@ -39,10 +36,8 @@ do
         PlayerCache = {},
         DrawingCache = {},
         AllDrawingCache = {},
-
         ChildAddedConnections = {},
         ChildRemovedConnections = {},
-
         DrawingAddedConnections = {},
     }
     PlayerESP.__index = PlayerESP
@@ -70,9 +65,7 @@ do
         local Cache = PlayerESP.DrawingCache[1]
         if Cache then
             table.remove(PlayerESP.DrawingCache, 1)
-
             Cache.Name.Text = Player.DisplayName
-
             Self.AllDrawings = Cache.All
             Self.Drawings = Cache
         else
@@ -95,7 +88,6 @@ do
         end
 
         PlayerESP.PlayerCache[Player] = Self
-
         return Self
     end
 
@@ -104,23 +96,17 @@ do
         if type(Cache) ~= "table" or type(Cache.Drawings) ~= "table" or type(Cache.Connections) ~= "table" then
             return
         end
-
         PlayerESP.PlayerCache[Player] = nil
-
         for i = 1, #Cache.Connections do
             Cache.Connections[i]:Disconnect()
         end
-
         table.insert(PlayerESP.DrawingCache, Cache.Drawings)
     end
 
     function PlayerESP:CreateDrawingCache()
         local AllDrawings = {}
 
-        local Corners = {
-            Lines = {},
-            Outlines = {},
-        }
+        local Corners = { Lines = {}, Outlines = {} }
         for i = 1, 8 do
             local Outline = CreateDrawing("Line", {
                 Visible = false,
@@ -139,8 +125,7 @@ do
         end
 
         local FlagTexts = {}
-        local MaxFlags = 8
-        for i = 1, MaxFlags do
+        for i = 1, 4 do
             local FlagText = CreateDrawing("Text", {
                 Visible = false,
                 Center = false,
@@ -158,22 +143,6 @@ do
 
         local Drawings = {
             Corners = Corners,
-
-            HealthBar = CreateDrawing("Square", {
-                Visible = false,
-                Thickness = 1,
-                Filled = true,
-                ZIndex = BaseZIndex + 1,
-            }, AllDrawings),
-            HealthBackground = CreateDrawing("Square", {
-                Visible = false,
-                Color = Color3.new(0.239215, 0.239215, 0.239215),
-                Transparency = 0.7,
-                Thickness = 1,
-                Filled = true,
-                ZIndex = BaseZIndex,
-            }, AllDrawings),
-
             Name = CreateDrawing("Text", {
                 Visible = false,
                 Center = true,
@@ -197,6 +166,20 @@ do
                 Font = GlobalFont,
                 ZIndex = BaseZIndex + 1,
             }, AllDrawings),
+            HealthBar = CreateDrawing("Square", {
+                Visible = false,
+                Thickness = 1,
+                Filled = true,
+                ZIndex = BaseZIndex + 1,
+            }, AllDrawings),
+            HealthBackground = CreateDrawing("Square", {
+                Visible = false,
+                Color = Color3.new(0.239215, 0.239215, 0.239215),
+                Transparency = 0.7,
+                Thickness = 1,
+                Filled = true,
+                ZIndex = BaseZIndex,
+            }, AllDrawings),
             Weapon = CreateDrawing("Text", {
                 Visible = false,
                 Center = true,
@@ -208,7 +191,6 @@ do
                 Font = GlobalFont,
                 ZIndex = BaseZIndex + 1,
             }, AllDrawings),
-
             FlagTexts = FlagTexts,
         }
         Drawings.All = AllDrawings
@@ -218,10 +200,7 @@ do
     end
 
     function PlayerESP:HideDrawings()
-        if self.Hidden then
-            return
-        end
-
+        if self.Hidden then return end
         self.Hidden = true
         for i = 1, #self.AllDrawings do
             self.AllDrawings[i].Visible = false
@@ -229,9 +208,7 @@ do
     end
 
     function PlayerESP:SetNonActive()
-        if self.Current.Active == false then
-            return
-        end
+        if self.Current.Active == false then return end
         self.Current.Active = false
         for i = 1, #self.AllDrawings do
             self.AllDrawings[i].Visible = false
@@ -240,9 +217,7 @@ do
 
     function PlayerESP:HumanoidHealthChanged()
         local Humanoid = self.Current.Humanoid
-        if not Humanoid then
-            return
-        end
+        if not Humanoid then return end
 
         local Health = Humanoid.Health
         local MaxHealth = Humanoid.MaxHealth
@@ -263,7 +238,6 @@ do
 
     function PlayerESP:SetupHumanoid(Humanoid, FirstTime)
         self:HumanoidHealthChanged()
-
         table.insert(self.Connections, Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
             self:HumanoidHealthChanged()
         end))
@@ -271,7 +245,6 @@ do
         if FirstTime then
             local ChildAddedConnections = self.ChildAddedConnections
             local CharacterChildren = self.Current.Character:GetChildren()
-
             for i = 1, #CharacterChildren do
                 local Child = CharacterChildren[i]
                 for j = 1, #ChildAddedConnections do
@@ -283,7 +256,6 @@ do
 
     function PlayerESP:Loop(Settings, DistanceOverride)
         local Current = self.Current
-
         local _, Size = GetBoundingBox(Current.Humanoid, true)
         local Goal = Current.RebuiltPos or Current.RootPart.Position
 
@@ -295,7 +267,6 @@ do
         self.Hidden = false
 
         local CF = CFrame.new(Goal, CurrentCamera.CFrame.Position)
-
         local X, Y = -Size.X / 2, Size.Y / 2
         local TopRight = WorldToViewPoint((CF * CFrame.new(X, Y, 0)).Position)
         local BottomRight = WorldToViewPoint((CF * CFrame.new(X, -Y, 0)).Position)
@@ -315,7 +286,6 @@ do
 
     function PlayerESP:PrimaryPartAdded()
         local PrimaryPart = self.Current.Character.PrimaryPart
-
         if PrimaryPart then
             self.Current.RootPart = PrimaryPart
             if self.Current.Humanoid and self.Current.Health > 0 then
@@ -329,7 +299,6 @@ do
             self.Current.Humanoid = Child
             self:SetupHumanoid(Child)
         end
-
         for i = 1, #self.ChildAddedConnections do
             self.ChildAddedConnections[i](self, Child)
         end
@@ -344,7 +313,6 @@ do
             self.Current.RootPart = nil
             self:SetNonActive()
         end
-
         for i = 1, #self.ChildRemovedConnections do
             self.ChildRemovedConnections[i](self, Child)
         end
@@ -354,10 +322,8 @@ do
         self.Current = {
             Character = Character,
             Active = false,
-
             Humanoid = Character:FindFirstChild("Humanoid"),
             RootPart = Character:FindFirstChild("HumanoidRootPart"),
-
             Health = nil,
             Weapon = nil,
             Connection = nil,
@@ -381,7 +347,6 @@ do
 
     function PlayerESP:CharacterRemoved(Character)
         self.Current = nil
-
         for i = 1, #self.AllDrawings do
             self.AllDrawings[i].Visible = false
         end
@@ -415,13 +380,10 @@ do
         local Points = {
             {Vector2.new(Left, Top), Vector2.new(Left + HorizontalLen, Top)},
             {Vector2.new(Left, Top), Vector2.new(Left, Top + VerticalLen)},
-
             {Vector2.new(Right - HorizontalLen, Top), Vector2.new(Right, Top)},
             {Vector2.new(Right, Top), Vector2.new(Right, Top + VerticalLen)},
-
             {Vector2.new(Left, Bottom), Vector2.new(Left + HorizontalLen, Bottom)},
             {Vector2.new(Left, Bottom - VerticalLen), Vector2.new(Left, Bottom)},
-
             {Vector2.new(Right - HorizontalLen, Bottom), Vector2.new(Right, Bottom)},
             {Vector2.new(Right, Bottom - VerticalLen), Vector2.new(Right, Bottom)},
         }
@@ -429,16 +391,12 @@ do
         for i = 1, 8 do
             local P1 = Points[i][1]
             local P2 = Points[i][2]
-
             local Outline = Outlines[i]
             local Line = Lines[i]
-
             Outline.Visible = true
             Line.Visible = true
-
             Outline.From = P1
             Outline.To = P2
-
             Line.From = P1
             Line.To = P2
         end
@@ -446,43 +404,24 @@ do
 
     function PlayerESP:RenderName(Vector2Pos, Offset, Enabled)
         local Name = self.Drawings.Name
-
         if not Enabled then
             Name.Visible = false
             return
         end
-
         Name.Visible = true
         Name.Position = Vector2Pos - Vector2.new(0, Offset.Y + Name.Size)
     end
 
     function PlayerESP:RenderDistance(Vector2Pos, Offset, Enabled, DistanceOverride)
         local Distance = self.Drawings.Distance
-
         if not Enabled then
             Distance.Visible = false
             return
         end
-
-        local YOffset = self.Drawings.Weapon.Visible and 13 or 0
         local Magnitude = math.round(DistanceOverride or (CurrentCamera.CFrame.Position - self.Current.RootPart.Position).Magnitude)
-
         Distance.Visible = true
-        Distance.Position = Vector2Pos + Vector2.new(0, Offset.Y + YOffset)
+        Distance.Position = Vector2Pos + Vector2.new(0, Offset.Y)
         Distance.Text = `[{Magnitude}]`
-    end
-
-    function PlayerESP:RenderWeapon(Vector2Pos, Offset, Enabled)
-        local WeaponText = self.Drawings.Weapon
-
-        if not Enabled then
-            WeaponText.Visible = false
-            return
-        end
-
-        WeaponText.Visible = true
-        WeaponText.Position = Vector2Pos + Vector2.new(0, Offset.Y)
-        WeaponText.Text = self.Current.Weapon and string.lower(self.Current.Weapon.Name) or "none"
     end
 
     function PlayerESP:RenderHealthbar(Vector2Pos, Offset, Enabled)
@@ -491,25 +430,30 @@ do
             self.Drawings.HealthBackground.Visible = false
             return
         end
-
         local HealthBar = self.Drawings.HealthBar
         local HealthBackground = self.Drawings.HealthBackground
-
         HealthBar.Visible = true
         HealthBackground.Visible = true
-
         local BasePosition = Vector2Pos - Offset - Vector2.new(5, 0)
         local BaseSize = Vector2.new(3, Offset.Y * 2)
-
         local HealthLength = (BaseSize.Y - 2) * self.Current.HealthPercentage
         local HealthPosition = BasePosition + Vector2.new(1, 1 + (BaseSize.Y - 2 - HealthLength))
         local HealthSize = Vector2.new(1, HealthLength)
-
         HealthBackground.Position = BasePosition
         HealthBackground.Size = BaseSize
-
         HealthBar.Position = HealthPosition
         HealthBar.Size = HealthSize
+    end
+
+    function PlayerESP:RenderWeapon(Vector2Pos, Offset, Enabled)
+        local WeaponText = self.Drawings.Weapon
+        if not Enabled then
+            WeaponText.Visible = false
+            return
+        end
+        WeaponText.Visible = true
+        WeaponText.Position = Vector2Pos + Vector2.new(0, Offset.Y)
+        WeaponText.Text = self.Current.Weapon and string.lower(self.Current.Weapon.Name) or "none"
     end
 
     function PlayerESP:RenderFlags(Vector2Pos, Offset, FlagsSettings)
@@ -536,8 +480,6 @@ do
         local Spacing = math.max(GlobalSize, 12) + 6
 
         local Mode = string.lower(FlagsSettings.Mode or "normal")
-        local Index = 0
-
         if Mode == "always" then
             for i = 1, math.min(#Items, #FlagTexts) do
                 local Item = Items[i]
@@ -553,10 +495,9 @@ do
             return
         end
 
+        local Index = 0
         for i = 1, #Items do
-            if Index >= #FlagTexts then
-                break
-            end
+            if Index >= #FlagTexts then break end
             local Item = Items[i]
             if Item.State then
                 local TextObj = FlagTexts[Index + 1]
