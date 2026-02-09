@@ -2,6 +2,8 @@ local CloneRef = cloneref or function(...) return ... end
 local RunService = CloneRef(game:GetService("RunService"))
 local CurrentCamera = CloneRef(workspace.CurrentCamera)
 
+local CompareInstances = compareinstances or rawequal
+
 local CreateDrawing = function(Type, Properties, ...)
     local DrawingObject = Drawing.new(Type)
     for Key, Value in pairs(Properties) do
@@ -11,18 +13,6 @@ local CreateDrawing = function(Type, Properties, ...)
         table.insert(TableRef, DrawingObject)
     end
     return DrawingObject
-end
-
-local GetBoundingBox = function(Model, IsPlayer)
-    if IsPlayer then
-        return Model:ComputeR15BodyBoundingBox()
-    end
-    return Model:GetBoundingBox()
-end
-
-local WorldToViewPoint = function(Position)
-    local Pos, OnScreen = CurrentCamera:WorldToViewportPoint(Position)
-    return Vector2.new(Pos.X, Pos.Y), OnScreen, Pos.Z
 end
 
 local GlobalFont = _G.GLOBAL_FONT or 1
@@ -38,23 +28,39 @@ do
     local PlayerESP = {
         PlayerCache = {},
         DrawingCache = {},
-        AllDrawingCache = {},
 
         ChildAddedConnections = {},
         ChildRemovedConnections = {},
-
         DrawingAddedConnections = {},
     }
     PlayerESP.__index = PlayerESP
 
     PlayerESP.OnChildAdded = function(Callback)
-        table.insert(PlayerESP.ChildAddedConnections, Callback)
+        PlayerESP.ChildAddedConnections[#PlayerESP.ChildAddedConnections + 1] = Callback
     end
     PlayerESP.OnChildRemoved = function(Callback)
-        table.insert(PlayerESP.ChildRemovedConnections, Callback)
+        PlayerESP.ChildRemovedConnections[#PlayerESP.ChildRemovedConnections + 1] = Callback
     end
     PlayerESP.OnDrawingAdded = function(Callback)
-        table.insert(PlayerESP.DrawingAddedConnections, Callback)
+        PlayerESP.DrawingAddedConnections[#PlayerESP.DrawingAddedConnections + 1] = Callback
+    end
+
+    local function GetBoundingBoxSafe(Character, Humanoid)
+        if Humanoid and Humanoid.RigType == Enum.HumanoidRigType.R15 and Humanoid.ComputeR15BodyBoundingBox then
+            local Ok, CF, Size = pcall(Humanoid.ComputeR15BodyBoundingBox, Humanoid)
+            if Ok and typeof(CF) == "CFrame" and typeof(Size) == "Vector3" then
+                return CF, Size
+            end
+        end
+
+        if Character and Character.GetBoundingBox then
+            local Ok, CF, Size = pcall(Character.GetBoundingBox, Character)
+            if Ok and typeof(CF) == "CFrame" and typeof(Size) == "Vector3" then
+                return CF, Size
+            end
+        end
+
+        return nil, nil
     end
 
     local function Get2DBoxFrom3DBounds(CF, Size)
@@ -63,23 +69,35 @@ do
 
         local MinX, MinY = math.huge, math.huge
         local MaxX, MaxY = -math.huge, -math.huge
+
+        local AnyInFront = false
         local MinZ = math.huge
 
         for IX = -1, 1, 2 do
+            local OX = HX * IX
             for IY = -1, 1, 2 do
+                local OY = HY * IY
                 for IZ = -1, 1, 2 do
-                    local CornerWorld = (CF * CFrame.new(HX * IX, HY * IY, HZ * IZ)).Position
-                    local V2, _, Z = WorldToViewPoint(CornerWorld)
-                    if Z < MinZ then MinZ = Z end
-                    if V2.X < MinX then MinX = V2.X end
-                    if V2.Y < MinY then MinY = V2.Y end
-                    if V2.X > MaxX then MaxX = V2.X end
-                    if V2.Y > MaxY then MaxY = V2.Y end
+                    local CornerWorld = (CF * CFrame.new(OX, OY, HZ * IZ)).Position
+                    local P = CurrentCamera:WorldToViewportPoint(CornerWorld)
+                    local X, Y, Z = P.X, P.Y, P.Z
+
+                    if Z > 0 then
+                        AnyInFront = true
+                    end
+                    if Z < MinZ then
+                        MinZ = Z
+                    end
+
+                    if X < MinX then MinX = X end
+                    if Y < MinY then MinY = Y end
+                    if X > MaxX then MaxX = X end
+                    if Y > MaxY then MaxY = Y end
                 end
             end
         end
 
-        return Vector2.new(MinX, MinY), Vector2.new(MaxX - MinX, MaxY - MinY), MinZ
+        return MinX, MinY, MaxX, MaxY, AnyInFront, MinZ
     end
 
     PlayerESP.New = function(Player)
@@ -97,7 +115,6 @@ do
             table.remove(PlayerESP.DrawingCache, 1)
 
             Cache.Name.Text = Player.DisplayName
-
             for i = 1, #Cache.FlagTexts do
                 Cache.FlagTexts[i].Size = FlagSize
             end
@@ -112,19 +129,18 @@ do
             PlayerESP.DrawingAddedConnections[i](Self)
         end
 
-        table.insert(Self.Connections, Player.CharacterAdded:Connect(function(...)
+        Self.Connections[#Self.Connections + 1] = Player.CharacterAdded:Connect(function(...)
             return Self:CharacterAdded(...)
-        end))
-        table.insert(Self.Connections, Player.CharacterRemoving:Connect(function(...)
+        end)
+        Self.Connections[#Self.Connections + 1] = Player.CharacterRemoving:Connect(function(...)
             return Self:CharacterRemoved(...)
-        end))
+        end)
 
         if Player.Character then
             Self:CharacterAdded(Player.Character, true)
         end
 
         PlayerESP.PlayerCache[Player] = Self
-
         return Self
     end
 
@@ -140,7 +156,7 @@ do
             Cache.Connections[i]:Disconnect()
         end
 
-        table.insert(PlayerESP.DrawingCache, Cache.Drawings)
+        PlayerESP.DrawingCache[#PlayerESP.DrawingCache + 1] = Cache.Drawings
     end
 
     function PlayerESP:CreateDrawingCache()
@@ -148,43 +164,39 @@ do
 
         local Corners = { Lines = {}, Outlines = {} }
         for i = 1, 8 do
-            local Outline = CreateDrawing("Line", {
+            Corners.Outlines[i] = CreateDrawing("Line", {
                 Visible = false,
                 Thickness = 2,
                 Color = Color3.new(0, 0, 0),
                 ZIndex = BaseZIndex,
             }, AllDrawings)
-            local Line = CreateDrawing("Line", {
+            Corners.Lines[i] = CreateDrawing("Line", {
                 Visible = false,
                 Thickness = 1,
                 Color = Color3.new(1, 1, 1),
                 ZIndex = BaseZIndex + 1,
             }, AllDrawings)
-            table.insert(Corners.Outlines, Outline)
-            table.insert(Corners.Lines, Line)
         end
 
         local FullBox = { Lines = {}, Outlines = {} }
         for i = 1, 4 do
-            local Outline = CreateDrawing("Line", {
+            FullBox.Outlines[i] = CreateDrawing("Line", {
                 Visible = false,
                 Thickness = 2,
                 Color = Color3.new(0, 0, 0),
                 ZIndex = BaseZIndex,
             }, AllDrawings)
-            local Line = CreateDrawing("Line", {
+            FullBox.Lines[i] = CreateDrawing("Line", {
                 Visible = false,
                 Thickness = 1,
                 Color = Color3.new(1, 1, 1),
                 ZIndex = BaseZIndex + 1,
             }, AllDrawings)
-            table.insert(FullBox.Outlines, Outline)
-            table.insert(FullBox.Lines, Line)
         end
 
         local FlagTexts = {}
         for i = 1, 6 do
-            local FlagText = CreateDrawing("Text", {
+            FlagTexts[i] = CreateDrawing("Text", {
                 Visible = false,
                 Center = false,
                 Outline = true,
@@ -196,7 +208,6 @@ do
                 Font = GlobalFont,
                 ZIndex = BaseZIndex + 1,
             }, AllDrawings)
-            table.insert(FlagTexts, FlagText)
         end
 
         local Drawings = {
@@ -215,6 +226,19 @@ do
                 Font = GlobalFont,
                 ZIndex = BaseZIndex + 1,
             }, AllDrawings),
+
+            Weapon = CreateDrawing("Text", {
+                Visible = false,
+                Center = true,
+                Outline = true,
+                OutlineColor = Color3.new(0, 0, 0),
+                Color = Color3.new(1, 1, 1),
+                Transparency = 1,
+                Size = GlobalSize,
+                Font = GlobalFont,
+                ZIndex = BaseZIndex + 1,
+            }, AllDrawings),
+
             Distance = CreateDrawing("Text", {
                 Visible = false,
                 Center = true,
@@ -226,12 +250,14 @@ do
                 Font = GlobalFont,
                 ZIndex = BaseZIndex + 1,
             }, AllDrawings),
+
             HealthBar = CreateDrawing("Square", {
                 Visible = false,
                 Thickness = 1,
                 Filled = true,
                 ZIndex = BaseZIndex + 1,
             }, AllDrawings),
+
             HealthBackground = CreateDrawing("Square", {
                 Visible = false,
                 Color = Color3.new(0.239215, 0.239215, 0.239215),
@@ -239,17 +265,6 @@ do
                 Thickness = 1,
                 Filled = true,
                 ZIndex = BaseZIndex,
-            }, AllDrawings),
-            Weapon = CreateDrawing("Text", {
-                Visible = false,
-                Center = true,
-                Outline = true,
-                OutlineColor = Color3.new(0, 0, 0),
-                Color = Color3.new(1, 1, 1),
-                Transparency = 1,
-                Size = GlobalSize,
-                Font = GlobalFont,
-                ZIndex = BaseZIndex + 1,
             }, AllDrawings),
 
             FlagTexts = FlagTexts,
@@ -269,20 +284,22 @@ do
     end
 
     function PlayerESP:SetNonActive()
-        if self.Current.Active == false then return end
-        self.Current.Active = false
+        if self.Current and self.Current.Active == false then return end
+        if self.Current then
+            self.Current.Active = false
+        end
         for i = 1, #self.AllDrawings do
             self.AllDrawings[i].Visible = false
         end
     end
 
     function PlayerESP:HumanoidHealthChanged()
-        local Humanoid = self.Current.Humanoid
+        local Humanoid = self.Current and self.Current.Humanoid
         if not Humanoid then return end
 
         local Health = Humanoid.Health
         local MaxHealth = Humanoid.MaxHealth
-        local HealthPercentage = Health / MaxHealth
+        local HealthPercentage = (MaxHealth > 0 and (Health / MaxHealth)) or 0
 
         if self.Current.RootPart and Health > 0 then
             self.Current.Active = true
@@ -300,9 +317,9 @@ do
     function PlayerESP:SetupHumanoid(Humanoid, FirstTime)
         self:HumanoidHealthChanged()
 
-        table.insert(self.Connections, Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+        self.Connections[#self.Connections + 1] = Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
             self:HumanoidHealthChanged()
-        end))
+        end)
 
         if FirstTime then
             local ChildAddedConnections = self.ChildAddedConnections
@@ -316,43 +333,10 @@ do
         end
     end
 
-    function PlayerESP:Loop(Settings, DistanceOverride)
-        local Current = self.Current
-        local Humanoid = Current and Current.Humanoid
-        local RootPart = Current and Current.RootPart
-
-        if not Humanoid or not RootPart then
-            return self:HideDrawings()
-        end
-
-        local _, RootOnScreen, RootZ = WorldToViewPoint(RootPart.Position)
-        if not RootOnScreen or RootZ <= 0 then
-            self.Current.Visible = false
-            return self:HideDrawings()
-        end
-
-        local BoxCF, BoxSize3 = GetBoundingBox(Humanoid, true)
-        local BoxPos2D, BoxSize2D, MinZ = Get2DBoxFrom3DBounds(BoxCF, BoxSize3)
-        if MinZ <= 0 then
-            return self:HideDrawings()
-        end
-
-        self.Current.Visible = true
-        self.Hidden = false
-
-        local Center2D = BoxPos2D + (BoxSize2D * 0.5)
-        local Offset = BoxSize2D * 0.5
-
-        self:RenderBox(Center2D, BoxPos2D, BoxSize2D, Settings.Box)
-        self:RenderName(Center2D, Offset, Settings.Name)
-        self:RenderWeapon(Center2D, Offset, Settings.Weapon)
-        self:RenderDistance(Center2D, Offset, Settings.Distance, DistanceOverride)
-        self:RenderHealthbar(Center2D, Offset, Settings.Healthbar)
-        self:RenderFlags(BoxPos2D, BoxSize2D, Settings.Flags)
-    end
-
     function PlayerESP:PrimaryPartAdded()
-        local PrimaryPart = self.Current.Character.PrimaryPart
+        local Character = self.Current and self.Current.Character
+        if not Character then return end
+        local PrimaryPart = Character.PrimaryPart
         if PrimaryPart then
             self.Current.RootPart = PrimaryPart
             if self.Current.Humanoid and self.Current.Health and self.Current.Health > 0 then
@@ -392,8 +376,8 @@ do
             Character = Character,
             Active = false,
 
-            Humanoid = Character:FindFirstChild("Humanoid"),
-            RootPart = Character:FindFirstChild("HumanoidRootPart"),
+            Humanoid = Character:FindFirstChildOfClass("Humanoid"),
+            RootPart = Character:FindFirstChild("HumanoidRootPart") or Character.PrimaryPart,
 
             Health = nil,
             Weapon = nil,
@@ -401,29 +385,77 @@ do
             Visible = false,
         }
 
-        table.insert(self.Connections, Character:GetPropertyChangedSignal("PrimaryPart"):Connect(function()
+        self.Connections[#self.Connections + 1] = Character:GetPropertyChangedSignal("PrimaryPart"):Connect(function()
             self:PrimaryPartAdded()
-        end))
-        table.insert(self.Connections, Character.ChildAdded:Connect(function(...)
+        end)
+        self.Connections[#self.Connections + 1] = Character.ChildAdded:Connect(function(...)
             return self:ChildAdded(...)
-        end))
-        table.insert(self.Connections, Character.ChildRemoved:Connect(function(...)
+        end)
+        self.Connections[#self.Connections + 1] = Character.ChildRemoved:Connect(function(...)
             return self:ChildRemoved(...)
-        end))
+        end)
 
         if self.Current.Humanoid then
             self:SetupHumanoid(self.Current.Humanoid, FirstTime)
         end
     end
 
-    function PlayerESP:CharacterRemoved(Character)
+    function PlayerESP:CharacterRemoved()
         self.Current = nil
         for i = 1, #self.AllDrawings do
             self.AllDrawings[i].Visible = false
         end
     end
 
-    function PlayerESP:RenderBox(Center2D, BoxPos2D, BoxSize2D, BoxSettings)
+    function PlayerESP:Loop(Settings, DistanceOverride)
+        local Current = self.Current
+        if not Current then
+            return self:HideDrawings()
+        end
+
+        local Character = Current.Character
+        local Humanoid = Current.Humanoid
+        local RootPart = Current.RootPart
+
+        if not Character or not Humanoid or not RootPart then
+            return self:HideDrawings()
+        end
+
+        local BoxCF, BoxSize3 = GetBoundingBoxSafe(Character, Humanoid)
+        if not BoxCF or not BoxSize3 then
+            return self:HideDrawings()
+        end
+
+        local MinX, MinY, MaxX, MaxY, AnyInFront, MinZ = Get2DBoxFrom3DBounds(BoxCF, BoxSize3)
+        if not AnyInFront or MinZ <= 0 then
+            Current.Visible = false
+            return self:HideDrawings()
+        end
+
+        local W = MaxX - MinX
+        local H = MaxY - MinY
+        if W <= 1 or H <= 1 or W ~= W or H ~= H then
+            return self:HideDrawings()
+        end
+
+        Current.Visible = true
+        self.Hidden = false
+
+        local BoxPos2D = Vector2.new(MinX, MinY)
+        local BoxSize2D = Vector2.new(W, H)
+
+        local Center2D = BoxPos2D + (BoxSize2D * 0.5)
+        local Offset = BoxSize2D * 0.5
+
+        self:RenderBox(BoxPos2D, BoxSize2D, Settings.Box)
+        self:RenderName(Center2D, Offset, Settings.Name)
+        self:RenderWeapon(Center2D, Offset, Settings.Weapon)
+        self:RenderDistance(Center2D, Offset, Settings.Distance, DistanceOverride)
+        self:RenderHealthbar(Center2D, Offset, Settings.Healthbar)
+        self:RenderFlags(BoxPos2D, BoxSize2D, Settings.Flags)
+    end
+
+    function PlayerESP:RenderBox(BoxPos2D, BoxSize2D, BoxSettings)
         local Corners = self.Drawings.Corners
         local FullBox = self.Drawings.FullBox
 
@@ -455,22 +487,27 @@ do
             return
         end
 
+        local Left = BoxPos2D.X
+        local Top = BoxPos2D.Y
+        local Right = Left + BoxSize2D.X
+        local Bottom = Top + BoxSize2D.Y
+
         if Mode == "full" then
             for i = 1, 8 do
                 CornersLines[i].Visible = false
                 CornersOutlines[i].Visible = false
             end
 
-            local X1 = BoxPos2D.X
-            local Y1 = BoxPos2D.Y
-            local X2 = BoxPos2D.X + BoxSize2D.X
-            local Y2 = BoxPos2D.Y + BoxSize2D.Y
+            local P1 = Vector2.new(Left, Top)
+            local P2 = Vector2.new(Right, Top)
+            local P3 = Vector2.new(Right, Bottom)
+            local P4 = Vector2.new(Left, Bottom)
 
-            local P = {
-                {Vector2.new(X1, Y1), Vector2.new(X2, Y1)},
-                {Vector2.new(X2, Y1), Vector2.new(X2, Y2)},
-                {Vector2.new(X2, Y2), Vector2.new(X1, Y2)},
-                {Vector2.new(X1, Y2), Vector2.new(X1, Y1)},
+            local Seg = {
+                {P1, P2},
+                {P2, P3},
+                {P3, P4},
+                {P4, P1},
             }
 
             for i = 1, 4 do
@@ -478,10 +515,10 @@ do
                 local L = FullLines[i]
                 O.Visible = true
                 L.Visible = true
-                O.From = P[i][1]
-                O.To = P[i][2]
-                L.From = P[i][1]
-                L.To = P[i][2]
+                O.From = Seg[i][1]
+                O.To = Seg[i][2]
+                L.From = Seg[i][1]
+                L.To = Seg[i][2]
             end
 
             return
@@ -492,15 +529,10 @@ do
             FullOutlines[i].Visible = false
         end
 
-        local Left = BoxPos2D.X
-        local Top = BoxPos2D.Y
-        local Right = BoxPos2D.X + BoxSize2D.X
-        local Bottom = BoxPos2D.Y + BoxSize2D.Y
-
         local HorizontalLen = math.floor(BoxSize2D.X * 0.25)
         local VerticalLen = math.floor(BoxSize2D.Y * 0.25)
 
-        local Points = {
+        local P = {
             {Vector2.new(Left, Top), Vector2.new(Left + HorizontalLen, Top)},
             {Vector2.new(Left, Top), Vector2.new(Left, Top + VerticalLen)},
 
@@ -515,20 +547,14 @@ do
         }
 
         for i = 1, 8 do
-            local P1 = Points[i][1]
-            local P2 = Points[i][2]
-
             local Outline = CornersOutlines[i]
             local Line = CornersLines[i]
-
             Outline.Visible = true
             Line.Visible = true
-
-            Outline.From = P1
-            Outline.To = P2
-
-            Line.From = P1
-            Line.To = P2
+            Outline.From = P[i][1]
+            Outline.To = P[i][2]
+            Line.From = P[i][1]
+            Line.To = P[i][2]
         end
     end
 
@@ -582,7 +608,7 @@ do
         local BasePosition = Vector2Pos - Offset - Vector2.new(5, 0)
         local BaseSize = Vector2.new(3, Offset.Y * 2)
 
-        local HealthLength = (BaseSize.Y - 2) * self.Current.HealthPercentage
+        local HealthLength = (BaseSize.Y - 2) * (self.Current.HealthPercentage or 0)
         local HealthPosition = BasePosition + Vector2.new(1, 1 + (BaseSize.Y - 2 - HealthLength))
         local HealthSize = Vector2.new(1, HealthLength)
 
@@ -610,9 +636,8 @@ do
             end
         end
 
-        local Right = BoxPos2D.X + BoxSize2D.X
-        local Top = BoxPos2D.Y
-        local X = Right + 2
+        local X = BoxPos2D.X + BoxSize2D.X + 2
+        local Y = BoxPos2D.Y
 
         local Mode = string.lower(FlagsSettings.Mode or "normal")
         if Mode == "always" then
@@ -624,7 +649,7 @@ do
                 TextObj.Visible = true
                 TextObj.Size = FlagSize
                 TextObj.Text = tostring(Item.Text or "")
-                TextObj.Position = Vector2.new(X, Top + (FlagLineHeight * (i - 1)))
+                TextObj.Position = Vector2.new(X, Y + (FlagLineHeight * (i - 1)))
                 TextObj.Color = (State and (Item.ColorTrue or Color3.new(0, 1, 0))) or (Item.ColorFalse or Color3.new(1, 0, 0))
             end
             return
@@ -639,7 +664,7 @@ do
                 TextObj.Visible = true
                 TextObj.Size = FlagSize
                 TextObj.Text = tostring(Item.Text or "")
-                TextObj.Position = Vector2.new(X, Top + (FlagLineHeight * Index))
+                TextObj.Position = Vector2.new(X, Y + (FlagLineHeight * Index))
                 TextObj.Color = Item.ColorTrue or Color3.new(0, 1, 0)
                 Index = Index + 1
             end
