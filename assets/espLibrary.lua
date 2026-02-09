@@ -107,73 +107,6 @@ do
         return MinX, MinY, MaxX, MaxY, AnyInFront, MinZ
     end
 
-    PlayerESP.New = function(Player)
-        local Self = setmetatable({
-            Player = Player,
-            Connections = {},
-            Hidden = false,
-            AllDrawings = nil,
-            Drawings = nil,
-            Current = nil,
-        }, PlayerESP)
-
-        local Cache = PlayerESP.DrawingCache[1]
-        if Cache then
-            table.remove(PlayerESP.DrawingCache, 1)
-
-            Cache.Name.Text = Player.DisplayName
-
-            local Cfg = EspLibrary.Config
-            for i = 1, #Cache.FlagTexts do
-                local T = Cache.FlagTexts[i]
-                T.Font = Cfg.Font
-                T.Size = Cfg.FlagSize
-                T.Color = Color3.new(1, 1, 1)
-                T.Outline = true
-                T.OutlineColor = Color3.new(0, 0, 0)
-                T.Transparency = 1
-            end
-
-            Self.AllDrawings = Cache.All
-            Self.Drawings = Cache
-        else
-            Self:CreateDrawingCache()
-        end
-
-        for i = 1, #PlayerESP.DrawingAddedConnections do
-            PlayerESP.DrawingAddedConnections[i](Self)
-        end
-
-        Self.Connections[#Self.Connections + 1] = Player.CharacterAdded:Connect(function(...)
-            return Self:CharacterAdded(...)
-        end)
-        Self.Connections[#Self.Connections + 1] = Player.CharacterRemoving:Connect(function(...)
-            return Self:CharacterRemoved(...)
-        end)
-
-        if Player.Character then
-            Self:CharacterAdded(Player.Character, true)
-        end
-
-        PlayerESP.PlayerCache[Player] = Self
-        return Self
-    end
-
-    PlayerESP.Remove = function(Player)
-        local Cache = PlayerESP.PlayerCache[Player]
-        if type(Cache) ~= "table" or type(Cache.Drawings) ~= "table" or type(Cache.Connections) ~= "table" then
-            return
-        end
-
-        PlayerESP.PlayerCache[Player] = nil
-
-        for i = 1, #Cache.Connections do
-            Cache.Connections[i]:Disconnect()
-        end
-
-        PlayerESP.DrawingCache[#PlayerESP.DrawingCache + 1] = Cache.Drawings
-    end
-
     function PlayerESP:CreateDrawingCache()
         local AllDrawings = {}
         local Cfg = EspLibrary.Config
@@ -291,19 +224,65 @@ do
         self.AllDrawings = AllDrawings
     end
 
-    function PlayerESP:HideDrawings()
-        if self.Hidden then return end
-        self.Hidden = true
-        for i = 1, #self.AllDrawings do
-            self.AllDrawings[i].Visible = false
+    PlayerESP.New = function(Player)
+        local Self = setmetatable({
+            Player = Player,
+            Connections = {},
+            Hidden = false,
+            AllDrawings = nil,
+            Drawings = nil,
+            Current = nil,
+        }, PlayerESP)
+
+        local Cache = PlayerESP.DrawingCache[1]
+        if Cache then
+            table.remove(PlayerESP.DrawingCache, 1)
+            Cache.Name.Text = Player.DisplayName
+            Self.AllDrawings = Cache.All
+            Self.Drawings = Cache
+        else
+            Self:CreateDrawingCache()
+        end
+
+        for i = 1, #PlayerESP.DrawingAddedConnections do
+            PlayerESP.DrawingAddedConnections[i](Self)
+        end
+
+        Self.Connections[#Self.Connections + 1] = Player.CharacterAdded:Connect(function(...)
+            return Self:CharacterAdded(...)
+        end)
+        Self.Connections[#Self.Connections + 1] = Player.CharacterRemoving:Connect(function(...)
+            return Self:CharacterRemoved(...)
+        end)
+
+        if Player.Character then
+            Self:CharacterAdded(Player.Character, true)
+        end
+
+        PlayerESP.PlayerCache[Player] = Self
+        return Self
+    end
+
+    PlayerESP.Remove = function(Player)
+        local Cache = PlayerESP.PlayerCache[Player]
+        if type(Cache) ~= "table" then return end
+
+        PlayerESP.PlayerCache[Player] = nil
+
+        if Cache.Connections then
+            for i = 1, #Cache.Connections do
+                Cache.Connections[i]:Disconnect()
+            end
+        end
+
+        if Cache.Drawings then
+            PlayerESP.DrawingCache[#PlayerESP.DrawingCache + 1] = Cache.Drawings
         end
     end
 
-    function PlayerESP:SetNonActive()
-        if self.Current and self.Current.Active == false then return end
-        if self.Current then
-            self.Current.Active = false
-        end
+    function PlayerESP:HideDrawings()
+        if self.Hidden then return end
+        self.Hidden = true
         for i = 1, #self.AllDrawings do
             self.AllDrawings[i].Visible = false
         end
@@ -316,12 +295,6 @@ do
         local Health = Humanoid.Health
         local MaxHealth = Humanoid.MaxHealth
         local HealthPercentage = (MaxHealth > 0 and (Health / MaxHealth)) or 0
-
-        if self.Current.RootPart and Health > 0 then
-            self.Current.Active = true
-        else
-            self:SetNonActive()
-        end
 
         self.Current.Health = Health
         self.Current.MaxHealth = MaxHealth
@@ -349,18 +322,6 @@ do
         end
     end
 
-    function PlayerESP:PrimaryPartAdded()
-        local Character = self.Current and self.Current.Character
-        if not Character then return end
-        local PrimaryPart = Character.PrimaryPart
-        if PrimaryPart then
-            self.Current.RootPart = PrimaryPart
-            if self.Current.Humanoid and self.Current.Health and self.Current.Health > 0 then
-                self.Current.Active = true
-            end
-        end
-    end
-
     function PlayerESP:ChildAdded(Child)
         if Child.ClassName == "Humanoid" then
             self.Current.Humanoid = Child
@@ -373,13 +334,11 @@ do
     end
 
     function PlayerESP:ChildRemoved(Child)
-        if not self.Current then
-        elseif Child == self.Current.Humanoid then
+        if not self.Current then return end
+        if Child == self.Current.Humanoid then
             self.Current.Humanoid = nil
-            self:SetNonActive()
         elseif Child == self.Current.RootPart then
             self.Current.RootPart = nil
-            self:SetNonActive()
         end
 
         for i = 1, #self.ChildRemovedConnections do
@@ -387,15 +346,23 @@ do
         end
     end
 
+    function PlayerESP:PrimaryPartAdded()
+        local Character = self.Current and self.Current.Character
+        if not Character then return end
+        local PrimaryPart = Character.PrimaryPart
+        if PrimaryPart then
+            self.Current.RootPart = PrimaryPart
+        end
+    end
+
     function PlayerESP:CharacterAdded(Character, FirstTime)
         self.Current = {
             Character = Character,
-            Active = false,
-
             Humanoid = Character:FindFirstChildOfClass("Humanoid"),
             RootPart = Character:FindFirstChild("HumanoidRootPart") or Character.PrimaryPart,
-
-            Health = nil,
+            Health = 0,
+            MaxHealth = 0,
+            HealthPercentage = 0,
             Weapon = nil,
             Visible = false,
         }
@@ -420,54 +387,6 @@ do
         for i = 1, #self.AllDrawings do
             self.AllDrawings[i].Visible = false
         end
-    end
-
-    function PlayerESP:Loop(Settings, DistanceOverride)
-        local Current = self.Current
-        if not Current then
-            return self:HideDrawings()
-        end
-
-        local Character = Current.Character
-        local Humanoid = Current.Humanoid
-        local RootPart = Current.RootPart
-
-        if not Character or not Humanoid or not RootPart then
-            return self:HideDrawings()
-        end
-
-        local BoxCF, BoxSize3 = GetBoundingBoxSafe(Character, Humanoid)
-        if not BoxCF or not BoxSize3 then
-            return self:HideDrawings()
-        end
-
-        local MinX, MinY, MaxX, MaxY, AnyInFront, MinZ = Get2DBoxFrom3DBounds(BoxCF, BoxSize3)
-        if not AnyInFront or MinZ <= 0 then
-            Current.Visible = false
-            return self:HideDrawings()
-        end
-
-        local W = MaxX - MinX
-        local H = MaxY - MinY
-        if W <= 1 or H <= 1 or W ~= W or H ~= H then
-            return self:HideDrawings()
-        end
-
-        Current.Visible = true
-        self.Hidden = false
-
-        local BoxPos2D = Vector2.new(MinX, MinY)
-        local BoxSize2D = Vector2.new(W, H)
-
-        local Center2D = BoxPos2D + (BoxSize2D * 0.5)
-        local Offset = BoxSize2D * 0.5
-
-        self:RenderBox(BoxPos2D, BoxSize2D, Settings.Box)
-        self:RenderName(Center2D, Offset, Settings.Name)
-        self:RenderWeapon(Center2D, Offset, Settings.Weapon)
-        self:RenderDistance(Center2D, Offset, Settings.Distance, DistanceOverride)
-        self:RenderHealthbar(Center2D, Offset, Settings.Healthbar)
-        self:RenderFlags(BoxPos2D, BoxSize2D, Settings.Flags)
     end
 
     function PlayerESP:RenderBox(BoxPos2D, BoxSize2D, BoxSettings)
@@ -699,6 +618,54 @@ do
                 Index = Index + 1
             end
         end
+    end
+
+    function PlayerESP:Loop(Settings, DistanceOverride)
+        local Current = self.Current
+        if not Current then
+            return self:HideDrawings()
+        end
+
+        local Character = Current.Character
+        local Humanoid = Current.Humanoid
+        local RootPart = Current.RootPart
+
+        if not Character or not Humanoid or not RootPart then
+            return self:HideDrawings()
+        end
+
+        local BoxCF, BoxSize3 = GetBoundingBoxSafe(Character, Humanoid)
+        if not BoxCF or not BoxSize3 then
+            return self:HideDrawings()
+        end
+
+        local MinX, MinY, MaxX, MaxY, AnyInFront, MinZ = Get2DBoxFrom3DBounds(BoxCF, BoxSize3)
+        if not AnyInFront or MinZ <= 0 then
+            Current.Visible = false
+            return self:HideDrawings()
+        end
+
+        local W = MaxX - MinX
+        local H = MaxY - MinY
+        if W <= 1 or H <= 1 or W ~= W or H ~= H then
+            return self:HideDrawings()
+        end
+
+        Current.Visible = true
+        self.Hidden = false
+
+        local BoxPos2D = Vector2.new(MinX, MinY)
+        local BoxSize2D = Vector2.new(W, H)
+
+        local Center2D = BoxPos2D + (BoxSize2D * 0.5)
+        local Offset = BoxSize2D * 0.5
+
+        self:RenderBox(BoxPos2D, BoxSize2D, Settings.Box)
+        self:RenderName(Center2D, Offset, Settings.Name)
+        self:RenderWeapon(Center2D, Offset, Settings.Weapon)
+        self:RenderDistance(Center2D, Offset, Settings.Distance, DistanceOverride)
+        self:RenderHealthbar(Center2D, Offset, Settings.Healthbar)
+        self:RenderFlags(BoxPos2D, BoxSize2D, Settings.Flags)
     end
 
     EspLibrary.PlayerESP = PlayerESP
