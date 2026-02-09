@@ -29,6 +29,9 @@ local GlobalFont = _G.GLOBAL_FONT or 1
 local GlobalSize = _G.GLOBAL_SIZE or 13
 local BaseZIndex = 1
 
+local FlagSize = math.clamp(GlobalSize - 4, 9, 11)
+local FlagLineHeight = FlagSize + 1
+
 local EspLibrary = {}
 
 do
@@ -69,6 +72,10 @@ do
             table.remove(PlayerESP.DrawingCache, 1)
 
             Cache.Name.Text = Player.DisplayName
+
+            for i = 1, #Cache.FlagTexts do
+                Cache.FlagTexts[i].Size = FlagSize
+            end
 
             Self.AllDrawings = Cache.All
             Self.Drawings = Cache
@@ -132,10 +139,7 @@ do
             table.insert(Corners.Lines, Line)
         end
 
-        local FullBox = {
-            Lines = {},
-            Outlines = {},
-        }
+        local FullBox = { Lines = {}, Outlines = {} }
         for i = 1, 4 do
             local Outline = CreateDrawing("Line", {
                 Visible = false,
@@ -154,7 +158,7 @@ do
         end
 
         local FlagTexts = {}
-        for i = 1, 4 do
+        for i = 1, 6 do
             local FlagText = CreateDrawing("Text", {
                 Visible = false,
                 Center = false,
@@ -162,7 +166,7 @@ do
                 OutlineColor = Color3.new(0, 0, 0),
                 Color = Color3.new(1, 1, 1),
                 Transparency = 1,
-                Size = GlobalSize,
+                Size = FlagSize,
                 Text = "",
                 Font = GlobalFont,
                 ZIndex = BaseZIndex + 1,
@@ -293,17 +297,13 @@ do
         local MinX, MinY = math.huge, math.huge
         local MaxX, MaxY = -math.huge, -math.huge
         local AnyOnScreen = false
-        local MinZ = math.huge
 
         for IX = -1, 1, 2 do
             for IY = -1, 1, 2 do
                 for IZ = -1, 1, 2 do
                     local CornerWorld = (CF * CFrame.new(HX * IX, HY * IY, HZ * IZ)).Position
-                    local V2, OnScreen, Z = WorldToViewPoint(CornerWorld)
+                    local V2, OnScreen = WorldToViewPoint(CornerWorld)
                     AnyOnScreen = AnyOnScreen or OnScreen
-                    if Z < MinZ then
-                        MinZ = Z
-                    end
                     if V2.X < MinX then MinX = V2.X end
                     if V2.Y < MinY then MinY = V2.Y end
                     if V2.X > MaxX then MaxX = V2.X end
@@ -315,7 +315,7 @@ do
         local Pos = Vector2.new(MinX, MinY)
         local BoxSize = Vector2.new(MaxX - MinX, MaxY - MinY)
 
-        return Pos, BoxSize, AnyOnScreen, MinZ
+        return Pos, BoxSize, AnyOnScreen
     end
 
     function PlayerESP:Loop(Settings, DistanceOverride)
@@ -604,19 +604,18 @@ do
 
         local Right = BoxPos2D.X + BoxSize2D.X
         local Top = BoxPos2D.Y
-
-        local LineHeight = GlobalSize + 1
-        local X = Right + 4
+        local X = Right + 3
 
         local Mode = string.lower(FlagsSettings.Mode or "normal")
         if Mode == "always" then
-            for i = 1, math.min(#Items, #FlagTexts) do
+            local Count = math.min(#Items, #FlagTexts)
+            for i = 1, Count do
                 local Item = Items[i]
                 local TextObj = FlagTexts[i]
                 local State = not not Item.State
                 TextObj.Visible = true
                 TextObj.Text = tostring(Item.Text or "")
-                TextObj.Position = Vector2.new(X, Top + (LineHeight * (i - 1)))
+                TextObj.Position = Vector2.new(X, Top + (FlagLineHeight * (i - 1)))
                 TextObj.Color = (State and (Item.ColorTrue or Color3.new(0, 1, 0))) or (Item.ColorFalse or Color3.new(1, 0, 0))
             end
             return
@@ -630,7 +629,7 @@ do
                 local TextObj = FlagTexts[Index + 1]
                 TextObj.Visible = true
                 TextObj.Text = tostring(Item.Text or "")
-                TextObj.Position = Vector2.new(X, Top + (LineHeight * Index))
+                TextObj.Position = Vector2.new(X, Top + (FlagLineHeight * Index))
                 TextObj.Color = Item.ColorTrue or Color3.new(0, 1, 0)
                 Index = Index + 1
             end
