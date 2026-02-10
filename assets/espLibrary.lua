@@ -29,7 +29,17 @@ EspLibrary.Config = {
 
     BoxCornerWidthScale = 0.25,
     BoxCornerHeightScale = 0.25,
+
+    PixelSnap = true,
 }
+
+local function SnapN(N)
+    return math.floor(N + 0.5)
+end
+
+local function Snap2D(V)
+    return Vector2.new(SnapN(V.X), SnapN(V.Y))
+end
 
 do
     local PlayerESP = {
@@ -426,6 +436,13 @@ do
         local Right = Left + BoxSize2D.X
         local Bottom = Top + BoxSize2D.Y
 
+        if EspLibrary.Config.PixelSnap then
+            Left = SnapN(Left)
+            Top = SnapN(Top)
+            Right = SnapN(Right)
+            Bottom = SnapN(Bottom)
+        end
+
         if Mode == "full" then
             for i = 1, 8 do
                 CornersLines[i].Visible = false
@@ -436,6 +453,13 @@ do
             local P2 = Vector2.new(Right, Top)
             local P3 = Vector2.new(Right, Bottom)
             local P4 = Vector2.new(Left, Bottom)
+
+            if EspLibrary.Config.PixelSnap then
+                P1 = Snap2D(P1)
+                P2 = Snap2D(P2)
+                P3 = Snap2D(P3)
+                P4 = Snap2D(P4)
+            end
 
             local Seg = {
                 {P1, P2},
@@ -484,12 +508,21 @@ do
         for i = 1, 8 do
             local Outline = CornersOutlines[i]
             local Line = CornersLines[i]
+
+            local A = P[i][1]
+            local B = P[i][2]
+
+            if EspLibrary.Config.PixelSnap then
+                A = Snap2D(A)
+                B = Snap2D(B)
+            end
+
             Outline.Visible = true
             Line.Visible = true
-            Outline.From = P[i][1]
-            Outline.To = P[i][2]
-            Line.From = P[i][1]
-            Line.To = P[i][2]
+            Outline.From = A
+            Outline.To = B
+            Line.From = A
+            Line.To = B
         end
     end
 
@@ -562,7 +595,7 @@ do
         if not FlagsSettings or not FlagsSettings.Enabled then
             return
         end
-    
+
         local Items = {}
         if type(FlagsSettings.Builder) == "function" then
             local Ok, Result = pcall(function() return FlagsSettings.Builder(self) end)
@@ -570,16 +603,21 @@ do
                 Items = Result
             end
         end
-    
+
         local Cfg = EspLibrary.Config
         local LineHeight = Cfg.FlagSize + Cfg.FlagLinePadding
-    
+
         local RightEdgeX = Center2D.X + Offset.X
         local TopY = Center2D.Y - Offset.Y
-    
+
         local X = RightEdgeX + Cfg.FlagXPadding
         local Y = TopY
-    
+
+        if Cfg.PixelSnap then
+            X = SnapN(X)
+            Y = SnapN(Y)
+        end
+
         local Mode = string.lower(FlagsSettings.Mode or "normal")
         if Mode == "always" then
             local Count = math.min(#Items, #FlagTexts)
@@ -587,7 +625,7 @@ do
                 local Item = Items[i]
                 local TextObj = FlagTexts[i]
                 local State = not not Item.State
-    
+
                 TextObj.Visible = true
                 TextObj.Font = Cfg.Font
                 TextObj.Size = Cfg.FlagSize
@@ -600,14 +638,14 @@ do
             end
             return
         end
-    
+
         local Index = 0
         for i = 1, #Items do
             if Index >= #FlagTexts then break end
             local Item = Items[i]
             if Item.State then
                 local TextObj = FlagTexts[Index + 1]
-    
+
                 TextObj.Visible = true
                 TextObj.Font = Cfg.Font
                 TextObj.Size = Cfg.FlagSize
@@ -617,7 +655,7 @@ do
                 TextObj.Text = tostring(Item.Text or "")
                 TextObj.Position = Vector2.new(X, Y + (LineHeight * Index))
                 TextObj.Color = Item.ColorTrue or Color3.new(0, 1, 0)
-    
+
                 Index = Index + 1
             end
         end
@@ -628,41 +666,41 @@ do
         if not Current then
             return self:HideDrawings()
         end
-    
+
         local Character = Current.Character
         local Humanoid = Current.Humanoid
         local RootPart = Current.RootPart
-    
+
         if not Character or not Humanoid or not RootPart then
             return self:HideDrawings()
         end
-    
+
         local BoxCF, BoxSize3 = GetBoundingBoxSafe(Character, Humanoid)
         if not BoxCF or not BoxSize3 then
             return self:HideDrawings()
         end
-    
+
         local MinX, MinY, MaxX, MaxY, AnyInFront, MinZ = Get2DBoxFrom3DBounds(BoxCF, BoxSize3)
         if not AnyInFront or MinZ <= 0 then
             Current.Visible = false
             return self:HideDrawings()
         end
-    
+
         local W = MaxX - MinX
         local H = MaxY - MinY
         if W <= 1 or H <= 1 or W ~= W or H ~= H then
             return self:HideDrawings()
         end
-    
+
         Current.Visible = true
         self.Hidden = false
-    
+
         local BoxPos2D = Vector2.new(MinX, MinY)
         local BoxSize2D = Vector2.new(W, H)
-    
+
         local Center2D = BoxPos2D + (BoxSize2D * 0.5)
         local Offset = BoxSize2D * 0.5
-    
+
         self:RenderBox(BoxPos2D, BoxSize2D, Settings.Box)
         self:RenderName(Center2D, Offset, Settings.Name)
         self:RenderWeapon(Center2D, Offset, Settings.Weapon)
